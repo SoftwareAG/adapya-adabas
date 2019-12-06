@@ -1,0 +1,474 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>User’s Guide &mdash; adapya-adabas 1.0.4 documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" href="_static/SAG2015.ico"/>
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Scripts" href="scripts.html" />
+    <link rel="prev" title="Installation" href="installing.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> adapya-adabas
+          
+
+          
+            
+            <img src="_static/SAG2015.ico" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.4
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installing.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">User’s Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#read-and-update-example">Read and Update Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#adabasx-objects">Adabasx Objects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#abuf">Abuf()</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#datamap">Datamap()</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#opening-a-session-with-the-database">Opening a session with the database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#storing-a-record">Storing a Record</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reading-a-record">Reading a Record</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#backing-out-the-transaction">Backing-out the Transaction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#closing-the-user-session">Closing the User session</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#response-code-checking-vs-exception-handling">Response Code Checking vs. Exception Handling</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">Package Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">adapya-adabas</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>User’s Guide</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/users_guide.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="user-s-guide">
+<h1>User’s Guide<a class="headerlink" href="#user-s-guide" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="read-and-update-example">
+<h2>Read and Update Example<a class="headerlink" href="#read-and-update-example" title="Permalink to this headline">¶</a></h2>
+<p>The following program inserts a record into the Employees demo file,
+reads and backs it out:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">adapya</span><span class="o">/</span><span class="n">adabas</span><span class="o">/</span><span class="n">scripts</span><span class="o">/</span><span class="n">n1_acbx</span><span class="o">.</span><span class="n">py</span>
+</pre></div>
+</div>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;Store and Read record then backout and close session&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>          <span class="c1"># PY3</span>
+
+<span class="kn">from</span> <span class="nn">adapya.base.defs</span> <span class="kn">import</span> <span class="n">log</span><span class="p">,</span> <span class="n">LOGBEFORE</span><span class="p">,</span> <span class="n">LOGCMD</span><span class="p">,</span> <span class="n">LOGCB</span><span class="p">,</span> <span class="n">LOGRB</span><span class="p">,</span> <span class="n">LOGRSP</span><span class="p">,</span> <span class="n">LOGFB</span>
+<span class="kn">from</span> <span class="nn">adapya.adabas.api</span> <span class="kn">import</span> <span class="n">Adabasx</span><span class="p">,</span> <span class="n">DatabaseError</span><span class="p">,</span> <span class="n">UPD</span>
+<span class="kn">from</span> <span class="nn">adapya.base.dump</span> <span class="kn">import</span> <span class="n">dump</span>
+
+<span class="n">FNR</span><span class="o">=</span><span class="mi">11</span><span class="p">;</span><span class="n">DBID</span><span class="o">=</span><span class="mi">8</span>               <span class="c1"># Employees file 11 in database 8</span>
+<span class="n">FB</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;AA,8,A.&#39;</span>               <span class="c1"># String for format buffer with field AA (personnel-id)</span>
+
+<span class="n">c1</span><span class="o">=</span><span class="n">Adabasx</span><span class="p">(</span><span class="n">fbl</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span><span class="n">rbl</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>   <span class="c1"># allocate set of buffers ACBX,</span>
+                            <span class="c1"># abd+format and record buffer</span>
+
+<span class="n">log</span><span class="p">(</span><span class="n">LOGCMD</span><span class="o">|</span><span class="n">LOGCB</span><span class="o">|</span><span class="n">LOGRB</span><span class="o">|</span><span class="n">LOGFB</span><span class="p">)</span> <span class="c1"># switch on printing of Adabas commands</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="c1"># print Adabas buffers after Adabas call</span>
+    <span class="n">c1</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">dbid</span><span class="o">=</span><span class="n">DBID</span>         <span class="c1"># for ACBX; c1.dbid=DBID for ACB</span>
+    <span class="n">c1</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">fnr</span><span class="o">=</span><span class="n">FNR</span>           <span class="c1"># set control block fields</span>
+
+    <span class="n">c1</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">UPD</span><span class="p">)</span>       <span class="c1"># issue OP</span>
+
+    <span class="n">c1</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">cid</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;abcd&#39;</span>       <span class="c1"># command id</span>
+    <span class="n">c1</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">isn</span><span class="o">=</span><span class="mi">0</span>             <span class="c1"># no record number yet</span>
+    <span class="n">c1</span><span class="o">.</span><span class="n">fb</span><span class="o">.</span><span class="n">value</span><span class="o">=</span><span class="n">FB</span>          <span class="c1"># put data into format buffer</span>
+    <span class="n">c1</span><span class="o">.</span><span class="n">rb</span><span class="o">.</span><span class="n">value</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;ABCDEFGH&#39;</span> <span class="c1"># ..            record buffer</span>
+    <span class="n">c1</span><span class="o">.</span><span class="n">rabd</span><span class="o">.</span><span class="n">send</span><span class="o">=</span><span class="mi">8</span>          <span class="c1"># set send size for record buffer</span>
+
+    <span class="n">c1</span><span class="o">.</span><span class="n">store</span><span class="p">()</span>              <span class="c1"># issue N1</span>
+
+    <span class="n">c1</span><span class="o">.</span><span class="n">rb</span><span class="o">.</span><span class="n">value</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39; &#39;</span><span class="o">*</span><span class="mi">8</span>      <span class="c1"># reset record buffer</span>
+
+    <span class="n">c1</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>                <span class="c1"># issue L1</span>
+
+    <span class="k">print</span><span class="p">(</span> <span class="nb">repr</span><span class="p">(</span><span class="n">c1</span><span class="o">.</span><span class="n">rb</span><span class="o">.</span><span class="n">value</span><span class="p">),</span> <span class="s1">&#39;returned size&#39;</span><span class="p">,</span> <span class="n">c1</span><span class="o">.</span><span class="n">rabd</span><span class="o">.</span><span class="n">recv</span><span class="p">)</span>
+
+<span class="k">except</span> <span class="n">DatabaseError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;DatabaseError exception:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">dump</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">apa</span><span class="o">.</span><span class="n">acbx</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="s1">&#39;Control Block Extended&#39;</span><span class="p">)</span>
+    <span class="k">raise</span>
+<span class="k">finally</span><span class="p">:</span>
+    <span class="n">log</span><span class="p">(</span><span class="n">LOGCMD</span><span class="o">|</span><span class="n">LOGRSP</span><span class="p">)</span>
+    <span class="n">c1</span><span class="o">.</span><span class="n">bt</span><span class="p">()</span>                 <span class="c1"># issue backout</span>
+    <span class="n">c1</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Some explanations in the following sections. You may also look into
+source adapya/adabas/api.py</p>
+<div class="section" id="adabasx-objects">
+<h3>Adabasx Objects<a class="headerlink" href="#adabasx-objects" title="Permalink to this headline">¶</a></h3>
+<p>Adabas database requests use a control block and a
+number of data buffers.  In Python such a request can be set up
+with an Adabasx object</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">c1</span><span class="o">=</span><span class="n">Adabasx</span><span class="p">(</span><span class="n">fbl</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span><span class="n">rbl</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sidebar">
+<p class="sidebar-title">Adabas Control Block (ACBX)</p>
+<p>The ACBX control block fields are defined in the Acbx datamap class that
+allows access to parts of the buffer per attribute name - similar to the struct
+in C or DSECT in assembler.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Acbx</span><span class="p">(</span><span class="n">Datamap</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+         <span class="n">fields</span><span class="o">=</span><span class="p">(</span>
+         <span class="o">...</span>
+         <span class="n">String</span><span class="p">(</span> <span class="s1">&#39;cmd&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+         <span class="n">Int2</span><span class="p">(</span> <span class="s1">&#39;rsv2&#39;</span><span class="p">),</span>
+         <span class="n">Int2</span><span class="p">(</span> <span class="s1">&#39;rsp&#39;</span><span class="p">),</span>
+         <span class="n">String</span><span class="p">(</span> <span class="s1">&#39;cid&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+         <span class="n">Uint4</span><span class="p">(</span> <span class="s1">&#39;dbid&#39;</span><span class="p">),</span>
+         <span class="n">Uint4</span><span class="p">(</span> <span class="s1">&#39;fnr&#39;</span><span class="p">),</span>
+         <span class="n">Uint8</span><span class="p">(</span> <span class="s1">&#39;isn&#39;</span><span class="p">),</span>
+         <span class="n">Uint8</span><span class="p">(</span> <span class="s1">&#39;isl&#39;</span><span class="p">),</span>
+         <span class="n">Uint8</span><span class="p">(</span> <span class="s1">&#39;isq&#39;</span><span class="p">),</span>
+         <span class="n">Char</span><span class="p">(</span> <span class="s1">&#39;op1&#39;</span><span class="p">),</span>
+         <span class="n">Char</span><span class="p">(</span> <span class="s1">&#39;op2&#39;</span><span class="p">),</span>
+         <span class="n">Char</span><span class="p">(</span> <span class="s1">&#39;op3&#39;</span><span class="p">),</span>
+         <span class="o">...</span>
+         <span class="p">)</span>
+      <span class="n">Datamap</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;Acbx&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">fields</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>c1 is an instance of the Adabasx class with an Adabas
+control block (ACBX) and a format buffer of and record buffer of
+64 bytes length each.</p>
+<p>The Adabasx and Acbx classes are defined in
+adapya/adabas/api.py.</p>
+<p>When creating the Adabasx object Python calls the __init__() method
+defined in the Adabas class. Behind the scenes, this method does the following</p>
+<ol class="loweralpha">
+<li><p>create a buffer with Abuf() of length ACBXLEN and assign it to the attribute acbx
+of the Adabasx. Create format and record buffers:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">from</span> <span class="n">adapya</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">defs</span> <span class="n">Abuf</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">acbx</span><span class="o">=</span><span class="n">Abuf</span><span class="p">(</span><span class="n">ACBXLEN</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">fb</span><span class="o">=</span><span class="n">Abuf</span><span class="p">(</span><span class="n">fbl</span><span class="p">)</span>
+<span class="bp">self</span><span class="o">.</span><span class="n">rb</span><span class="o">=</span><span class="n">Abuf</span><span class="p">(</span><span class="n">rbl</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+<li><p>define a mapping of Acbx fields to the buffer:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">cb</span><span class="o">=</span><span class="n">Acbx</span><span class="p">(</span><span class="n">buffer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acbx</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+<div class="section" id="abuf">
+<h3>Abuf()<a class="headerlink" href="#abuf" title="Permalink to this headline">¶</a></h3>
+<p>adapya.base.defs defines the buffer class <strong>Abuf(size)</strong>
+which is backed by the <strong>ctypes</strong> character buffer.</p>
+<p>Abuf() defines slice and file I/O operations and is used as read/write buffer
+in the foreign function call to the Adabas database.</p>
+</div>
+<div class="section" id="datamap">
+<h3>Datamap()<a class="headerlink" href="#datamap" title="Permalink to this headline">¶</a></h3>
+<p>Internally, Python has <strong>no</strong> concept to store data of different
+variables physically together as in a C struct or assembler DSECT.
+Yet with pack() and unpack() functions from the Python
+<strong>struct</strong> module
+variables can be mapped to a buffer (or string).</p>
+<p>With the datamap.py module from the adapya.base package such a mapping can be defined similar
+to C structs.</p>
+</div>
+<div class="section" id="opening-a-session-with-the-database">
+<h3>Opening a session with the database<a class="headerlink" href="#opening-a-session-with-the-database" title="Permalink to this headline">¶</a></h3>
+<p>The following statement sets the database id
+in the Adabas control block in c1 to select the database:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">c1</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">dbid</span><span class="o">=</span><span class="mi">8</span>
+<span class="n">c1</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">UPD</span><span class="p">)</span> <span class="c1"># issue OP</span>
+</pre></div>
+</div>
+<p>Then the open() method of the Adabasx class issues an Adabas OP
+command.</p>
+</div>
+<div class="section" id="storing-a-record">
+<h3>Storing a Record<a class="headerlink" href="#storing-a-record" title="Permalink to this headline">¶</a></h3>
+<div class="sidebar">
+<p class="sidebar-title">Python Strings</p>
+<p>In Python V2 there exist two string types:</p>
+<ol class="arabic simple">
+<li><p>string  <cite>‘abc’</cite></p></li>
+<li><p>unicode string <cite>u’abc’</cite></p></li>
+</ol>
+<p>String literals depend on the source encoding of the input
+device. Normally, specifying characters from the ASCII
+character set is safe. Other byte values can be written
+as hexadecimal <cite>x..</cite> and for unicode strings the unicode hex value
+with <cite>u….</cite></p>
+<p>Converting between string and unicode:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="s1">&#39;</span><span class="se">\x80</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;windows-1252&#39;</span><span class="p">)</span>
+<span class="go">u&#39;\u20ac&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="sa">u</span><span class="s1">&#39;</span><span class="se">\u20ac</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;windows-1252&#39;</span><span class="p">)</span>
+<span class="go">&#39;\x80&#39;</span>
+</pre></div>
+</div>
+<p>In Python V3 the string types have changed slightly</p>
+<ol class="arabic simple">
+<li><p>string of bytes b’abc’</p></li>
+<li><p>string ‘abc’</p></li>
+</ol>
+<p>In Python 2.6 and 2.7 it is already possible to define byte string
+literals and the resulting type is string.</p>
+</div>
+<p>Preparation to store a new record:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">c1</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">cid</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;abcd&#39;</span>
+<span class="n">c1</span><span class="o">.</span><span class="n">fb</span><span class="o">.</span><span class="n">value</span><span class="o">=</span><span class="n">FB</span>          <span class="c1"># put data into format buffer</span>
+<span class="n">c1</span><span class="o">.</span><span class="n">rb</span><span class="o">.</span><span class="n">value</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;ABCDEFGH&#39;</span> <span class="c1"># .. record buffer</span>
+<span class="n">c1</span><span class="o">.</span><span class="n">rabd</span><span class="o">.</span><span class="n">send</span><span class="o">=</span><span class="mi">8</span>          <span class="c1"># set send size for record buffer</span>
+
+<span class="n">c1</span><span class="o">.</span><span class="n">store</span><span class="p">()</span>              <span class="c1"># issue N1</span>
+</pre></div>
+</div>
+<p>In detail: set Command id is set with a 4 byte string:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">c1</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">cid</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;abcd&#39;</span>
+</pre></div>
+</div>
+<p>Assign data to the record buffer:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">c1</span><span class="o">.</span><span class="n">rb</span><span class="o">.</span><span class="n">value</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;ABCDEFGH&#39;</span>
+</pre></div>
+</div>
+<p>c1.rb is the record buffer. Make sure that you assign a value with
+c1.rb.value or with the slice operator:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">c1</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">8</span><span class="p">]</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39;ABCDEFGE&#39;</span>
+</pre></div>
+</div>
+<p>With ACBX the size of the buffers to send must be set. c1.rabd is the
+record buffer ABD:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">c1</span><span class="o">.</span><span class="n">rabd</span><span class="o">.</span><span class="n">send</span><span class="o">=</span><span class="mi">8</span> <span class="c1"># set send size for record buffer</span>
+</pre></div>
+</div>
+<p>The store() function is used to insert a new record. It issues the
+<em>N1</em> command and is equivalent to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">c1</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="o">=</span><span class="s1">&#39;N1&#39;</span><span class="p">,</span> <span class="n">isn</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">op1</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">op2</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="reading-a-record">
+<h3>Reading a Record<a class="headerlink" href="#reading-a-record" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">c1</span><span class="o">.</span><span class="n">rb</span><span class="o">.</span><span class="n">value</span><span class="o">=</span><span class="sa">b</span><span class="s1">&#39; &#39;</span><span class="o">*</span><span class="mi">8</span>      <span class="c1"># reset record buffer</span>
+
+<span class="n">c1</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="c1"># issue L1</span>
+
+<span class="nb">print</span><span class="p">(</span> <span class="nb">repr</span><span class="p">(</span><span class="n">c1</span><span class="o">.</span><span class="n">rb</span><span class="o">.</span><span class="n">value</span><span class="p">),</span> <span class="s1">&#39;returned size&#39;</span><span class="p">,</span> <span class="n">c1</span><span class="o">.</span><span class="n">rabd</span><span class="o">.</span><span class="n">recv</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="backing-out-the-transaction">
+<h3>Backing-out the Transaction<a class="headerlink" href="#backing-out-the-transaction" title="Permalink to this headline">¶</a></h3>
+<p>At the end of the program we back out the transaction which removes
+the new record from the database.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">c1</span><span class="o">.</span><span class="n">bt</span><span class="p">()</span> <span class="c1"># issue backout</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="closing-the-user-session">
+<h3>Closing the User session<a class="headerlink" href="#closing-the-user-session" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">c1</span><span class="o">.</span><span class="n">close</span><span class="p">()</span> <span class="c1"># issue close</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="response-code-checking-vs-exception-handling">
+<h3>Response Code Checking vs. Exception Handling<a class="headerlink" href="#response-code-checking-vs-exception-handling" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="o">....</span>
+<span class="k">except</span> <span class="n">DatabaseError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;DatabaseError exception:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">dump</span><span class="p">(</span><span class="n">apa</span><span class="o">.</span><span class="n">acbx</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="s1">&#39;Control Block&#39;</span><span class="p">)</span>
+    <span class="k">raise</span>
+</pre></div>
+</div>
+<p>The block within <code class="docutils literal notranslate"><span class="pre">try:</span></code> and <code class="docutils literal notranslate"><span class="pre">except:</span></code> contains some Adabas calls.</p>
+<p>Any Adabas response code will interupt the program sequence
+and raise a DatabaseError exception. This is caught in with the <code class="docutils literal notranslate"><span class="pre">except:</span></code>
+statement and handled by printing diagnostic information.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="scripts.html" class="btn btn-neutral float-right" title="Scripts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="installing.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2004-2019, software AG
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

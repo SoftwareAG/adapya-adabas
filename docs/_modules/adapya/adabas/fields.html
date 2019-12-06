@@ -1,0 +1,1182 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>adapya.adabas.fields &mdash; adapya-adabas 1.0.4 documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" href="../../../_static/SAG2015.ico"/>
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> adapya-adabas
+          
+
+          
+            
+            <img src="../../../_static/SAG2015.ico" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0.4
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installing.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../users_guide.html">User’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../scripts.html">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">Package Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../indices.html">Indices</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">adapya-adabas</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>adapya.adabas.fields</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for adapya.adabas.fields</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">adapya.adabas.fields - functions related to Adabas field definition</span>
+<span class="sd">===================================================================</span>
+
+<span class="sd">The fields module defines the following functions:</span>
+
+<span class="sd">- standardfieldlength-dictionary  for std lengths of Datetime fields</span>
+
+<span class="sd">- readfdt():  reads FDT per LF/S or LF/X and return list of fields</span>
+
+<span class="sd">- fndefstr(): printable fndef string from readfdt element</span>
+
+<span class="sd">- fdtfile2list: convert FDT on file to list structure</span>
+
+<span class="sd">- genfdt(): create LF/S structure from list of fields</span>
+
+<span class="sd">- str2fndef(): create fndef string from field definition string</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>          <span class="c1"># PY3</span>
+
+<span class="n">__date__</span><span class="o">=</span><span class="s2">&quot;$Date: 2019-09-04 15:18:09 +0200 (Wed, 04 Sep 2019) $&quot;</span>
+<span class="n">__rev__</span><span class="o">=</span><span class="s2">&quot;$Rev: 938 $&quot;</span>
+
+<span class="n">standardfieldlength</span><span class="o">=</span><span class="p">{</span>
+    <span class="p">(</span><span class="s1">&#39;DATE&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">):</span> <span class="mi">4</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;DATE&#39;</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">):</span> <span class="mi">4</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;DATE&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">):</span> <span class="mi">5</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;DATE&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">):</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">&#39;TIME&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">):</span> <span class="mi">3</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;TIME&#39;</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">):</span> <span class="mi">4</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;TIME&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">):</span> <span class="mi">4</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;TIME&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">):</span> <span class="mi">6</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">&#39;DATETIME&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">):</span> <span class="mi">6</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;DATETIME&#39;</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">):</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">&#39;DATETIME&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">):</span> <span class="mi">8</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;DATETIME&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">):</span> <span class="mi">14</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">&#39;TIMESTAMP&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">):</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;TIMESTAMP&#39;</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">):</span> <span class="mi">0</span><span class="p">,</span>   <span class="c1"># disallowed</span>
+    <span class="p">(</span><span class="s1">&#39;TIMESTAMP&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">):</span> <span class="mi">11</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;TIMESTAMP&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">):</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">&#39;NATDATE&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">):</span> <span class="mi">3</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;NATDATE&#39;</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">):</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">&#39;NATDATE&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">):</span> <span class="mi">4</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;NATDATE&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">):</span> <span class="mi">7</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">&#39;NATTIME&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">):</span> <span class="mi">6</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;NATTIME&#39;</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">):</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">&#39;NATTIME&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">):</span> <span class="mi">7</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;NATTIME&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">):</span> <span class="mi">13</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">&#39;UNIXTIME&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">):</span> <span class="mi">5</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;UNIXTIME&#39;</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">):</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">&#39;UNIXTIME&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">):</span> <span class="mi">6</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;UNIXTIME&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">):</span> <span class="mi">12</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">&#39;XTIMESTAMP&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">):</span> <span class="mi">8</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;XTIMESTAMP&#39;</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">):</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="p">(</span><span class="s1">&#39;XTIMESTAMP&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">):</span> <span class="mi">10</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;XTIMESTAMP&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">):</span> <span class="mi">18</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="sd">&#39;&#39;&#39;Define standard field lengths depending of datetime and format</span>
+<span class="sd">used for datetime conversions to/from other than default format &#39;&#39;&#39;</span>
+
+<span class="c1"># Mapping of FDXSYS system field codes to strings</span>
+<span class="n">SYDICT</span><span class="o">=</span><span class="p">{</span> <span class="mi">1</span><span class="p">:</span><span class="s1">&#39;TIME&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span><span class="s1">&#39;SESSIONID&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="s1">&#39;OPUSER&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">:</span><span class="s1">&#39;SESSIONUSER&#39;</span><span class="p">,</span>
+    <span class="mi">5</span><span class="p">:</span><span class="s1">&#39;JOBNAME&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+<span class="n">debug</span><span class="o">=</span><span class="mi">0</span>
+
+<div class="viewcode-block" id="readfdt"><a class="viewcode-back" href="../../../modules.html#adapya.adabas.fields.readfdt">[docs]</a><span class="k">def</span> <span class="nf">readfdt</span><span class="p">(</span><span class="n">dbid</span><span class="p">,</span> <span class="n">fnr</span><span class="p">,</span> <span class="n">printfdt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">fd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pwd</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">xopt</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">specials</span><span class="o">=</span><span class="kc">False</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Read the FDT for a given dbid / file number and optionally</span>
+<span class="sd">    print it.</span>
+
+<span class="sd">    :param dbid: database id</span>
+<span class="sd">    :param fnr:  file number</span>
+<span class="sd">    :param printfdt: if set to True the FDT will be printed (optional)</span>
+<span class="sd">    :param fd:  file descriptor to which FDT will be written (optional)</span>
+<span class="sd">    :param pwd: Adabas password for accessing the FDT (optional)</span>
+<span class="sd">    :param xopt: LF option selection</span>
+<span class="sd">        - 0: LF/S with ACB</span>
+<span class="sd">        - 1: LF/X with ACBX and extended LF (MF82/OS62)</span>
+<span class="sd">        - 2: LF/F with ACBX and extended LF (MF82/OS62)</span>
+<span class="sd">        - 3: LF/I with ACBX (internal FDT format)</span>
+<span class="sd">    :param specials: (default True) return also special fields/descriptors</span>
+
+<span class="sd">    :returns: List of FDT elements. Each element is a tuple of the form</span>
+
+<span class="sd">          (level, fnname, fnlen, fnformat,options)</span>
+
+<span class="sd">          options being a dictionary of options</span>
+
+<span class="sd">          e.g. (&#39;1&#39;,&#39;C7&#39;,&#39;0&#39;,&#39;A&#39;, {&#39;LB&#39;: None,&#39;MU&#39;: None,&#39;NU&#39;: None,&#39;NV&#39;: None})</span>
+
+
+<span class="sd">          For special fields a ordered dictionary is returned:</span>
+
+<span class="sd">           SUB, SUPER,</span>
+<span class="sd">            e.g. {&#39;SP&#39;: (options, parentlist-from-to)}</span>
+
+<span class="sd">          :todo: HYPER, COLL, PHON, REF</span>
+
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">struct</span><span class="o">,</span> <span class="nn">sys</span>
+    <span class="kn">from</span> <span class="nn">adapya.base.dump</span> <span class="k">import</span> <span class="n">dump</span>
+    <span class="kn">from</span> <span class="nn">adapya.base.conv</span> <span class="k">import</span> <span class="n">ebc2str</span>
+
+    <span class="c1"># issue Read FDT</span>
+
+    <span class="k">if</span> <span class="n">xopt</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">.api</span> <span class="k">import</span> <span class="n">Adabas</span>
+        <span class="n">cf</span><span class="o">=</span><span class="n">Adabas</span><span class="p">(</span><span class="n">rbl</span><span class="o">=</span><span class="mh">0x7FF8</span><span class="p">)</span>
+        <span class="n">cf</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">op2</span><span class="o">=</span><span class="s1">&#39;S&#39;</span>
+        <span class="n">cf</span><span class="o">.</span><span class="n">dbid</span><span class="o">=</span><span class="n">dbid</span>    <span class="c1"># set dbid in Adabas instance rather than in ACB</span>
+                        <span class="c1"># because that is overlayed with response code</span>
+    <span class="k">elif</span> <span class="n">xopt</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>        <span class="c1"># ACBX + LF/X</span>
+        <span class="kn">from</span> <span class="nn">adapya.base.dtconv</span> <span class="k">import</span> <span class="n">xts2utc</span>
+        <span class="kn">from</span> <span class="nn">.api</span> <span class="k">import</span> <span class="n">Adabasx</span>
+        <span class="n">cf</span><span class="o">=</span><span class="n">Adabasx</span><span class="p">(</span><span class="n">fbl</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">rbl</span><span class="o">=</span><span class="mh">0xFFF8</span><span class="p">)</span>
+        <span class="n">cf</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">dbid</span><span class="o">=</span><span class="n">dbid</span>
+        <span class="k">if</span> <span class="n">xopt</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">cf</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">op2</span><span class="o">=</span><span class="s1">&#39;X&#39;</span>
+        <span class="k">elif</span> <span class="n">xopt</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+            <span class="n">cf</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">op2</span><span class="o">=</span><span class="s1">&#39;F&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cf</span><span class="o">.</span><span class="n">cb</span><span class="o">.</span><span class="n">op2</span><span class="o">=</span><span class="s1">&#39;I&#39;</span>
+
+    <span class="c1"># cf.cb.isn=0xffffffff  # -1 for ADR/COR</span>
+    <span class="n">cf</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd</span><span class="o">=</span><span class="s1">&#39;LF&#39;</span><span class="p">,</span><span class="n">fnr</span><span class="o">=</span><span class="n">fnr</span><span class="p">,</span><span class="n">ad3</span><span class="o">=</span><span class="n">pwd</span><span class="p">)</span>
+    <span class="n">fields</span><span class="o">=</span><span class="p">[]</span>
+    <span class="n">specs</span><span class="o">=</span><span class="p">[]</span>
+    <span class="c1"># dump(cf.rb, &#39;Record buffer&#39;, &#39;RB&#39;)</span>
+
+    <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">xopt</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">DATEM</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="s1">&#39;DATE&#39;</span><span class="p">,</span><span class="s1">&#39;TIME&#39;</span><span class="p">,</span><span class="s1">&#39;DATETIME&#39;</span><span class="p">,</span><span class="s1">&#39;TIMESTAMP&#39;</span><span class="p">,</span><span class="s1">&#39;NATDATE&#39;</span><span class="p">,</span><span class="s1">&#39;NATTIME&#39;</span><span class="p">,</span><span class="s1">&#39;UNIXTIME&#39;</span><span class="p">,</span><span class="s1">&#39;XTIMESTAMP&#39;</span><span class="p">)</span>
+        <span class="c1"># extract total length and number of fields from record header</span>
+        <span class="p">(</span><span class="n">tlen</span><span class="p">,</span> <span class="n">sver</span><span class="p">,</span> <span class="n">numfields</span><span class="p">,</span> <span class="n">xtimestamp</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;=lcxHq&#39;</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">16</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;FDT created or last modified: </span><span class="si">%04d</span><span class="s1">-</span><span class="si">%02d</span><span class="s1">-</span><span class="si">%02d</span><span class="s1"> </span><span class="si">%02d</span><span class="s1">:</span><span class="si">%02d</span><span class="s1">:</span><span class="si">%02d</span><span class="s1">.</span><span class="si">%06d</span><span class="s1"> UTC+0&#39;</span> <span class="o">%</span>
+                    <span class="n">xts2utc</span><span class="p">(</span><span class="n">xtimestamp</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+
+        <span class="n">restlen</span> <span class="o">=</span> <span class="n">tlen</span>
+        <span class="n">last_ftype</span><span class="o">=</span><span class="s1">&#39; &#39;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">16</span>
+        <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">tlen</span><span class="p">:</span>
+            <span class="p">(</span><span class="n">ftype</span><span class="p">,</span><span class="n">flen</span><span class="p">,</span><span class="n">fname</span><span class="p">,</span><span class="nb">format</span><span class="p">,</span><span class="n">op1</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;=cB2scB&#39;</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s1">&#39;zos&#39;</span><span class="p">:</span>   <span class="c1"># data is in EBCDIC</span>
+                <span class="n">ftype</span> <span class="o">=</span> <span class="n">ebc2str</span><span class="p">(</span><span class="n">ftype</span><span class="p">)</span>  <span class="c1"># ebc2str supports PY3</span>
+                <span class="n">fname</span> <span class="o">=</span> <span class="n">ebc2str</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="n">ebc2str</span><span class="p">(</span><span class="nb">format</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">hexversion</span> <span class="o">&gt;</span> <span class="mh">0x03010100</span><span class="p">:</span>
+                <span class="c1"># Python 3</span>
+                <span class="n">ftype</span> <span class="o">=</span> <span class="n">ftype</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                <span class="n">fname</span> <span class="o">=</span> <span class="n">fname</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="nb">format</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+
+            <span class="n">foptions</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="k">if</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span>
+                <span class="p">(</span><span class="n">op2</span><span class="p">,</span><span class="n">level</span><span class="p">,</span><span class="n">datem</span><span class="p">,</span><span class="n">syda</span><span class="p">,</span><span class="n">fsys</span><span class="p">,</span><span class="n">op3</span><span class="p">,</span><span class="nb">len</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;=6BL&#39;</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">16</span><span class="p">])</span>
+                <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39; &#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op3</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DELF&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># deleted field        / only visible with xopt==2</span>
+                    <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39; &#39;</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">level</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span> <span class="nb">str</span><span class="p">(</span><span class="n">level</span><span class="p">),</span> <span class="n">fname</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">foptions</span><span class="o">.</span><span class="n">keys</span><span class="p">())),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+                    <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">foptions</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">parentof</span><span class="o">=</span><span class="p">[]</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;FI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">32</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">4</span><span class="p">:</span> <span class="n">parentof</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;PHON&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">parentof</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;SUBSUPER&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;UQ&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NB&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># new with V8</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>  <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NV&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>  <span class="mi">32</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;HF&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># only OpenSystems</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;XI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;LA&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">4</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;LB&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># new with V8</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NN&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NC&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">syda</span> <span class="o">&amp;</span> <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;CR&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">syda</span> <span class="o">&amp;</span>  <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;TR&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">syda</span> <span class="o">&amp;</span>  <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;TZ&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">datem</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DT&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">DATEM</span><span class="p">[</span><span class="n">datem</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">fsys</span>  <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;SY&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">fsys</span>
+                    <span class="k">if</span> <span class="n">op3</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DELF&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># deleted field        / only visible with xopt==2</span>
+                    <span class="k">if</span> <span class="n">op3</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DELD&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># disabled descriptor /</span>
+                    <span class="k">if</span> <span class="n">parentof</span><span class="p">:</span>
+                        <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PARENT_OF&#39;</span><span class="p">]</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parentof</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                        <span class="n">fops</span><span class="o">=</span><span class="p">[]</span>
+                        <span class="n">fopv</span><span class="o">=</span><span class="p">[]</span>
+                        <span class="n">fopo</span><span class="o">=</span><span class="p">[]</span>
+                        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">foptions</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                            <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;PE&#39;</span> <span class="ow">and</span> <span class="n">level</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                                <span class="k">continue</span>    <span class="c1"># omit PE on field level</span>
+                            <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="n">fops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                            <span class="k">elif</span> <span class="n">k</span><span class="o">==</span><span class="s1">&#39;DT&#39;</span><span class="p">:</span>
+                                <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;DT=E(</span><span class="si">%s</span><span class="s1">)&#39;</span><span class="o">%</span><span class="n">v</span><span class="p">)</span>
+                            <span class="k">elif</span> <span class="n">k</span><span class="o">==</span><span class="s1">&#39;PARENT_OF&#39;</span><span class="p">:</span>
+                                <span class="n">fopo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                            <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span><span class="s1">&#39;SY&#39;</span><span class="p">:</span>
+                                <span class="n">v</span> <span class="o">=</span> <span class="n">SYDICT</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="n">v</span><span class="p">)</span>
+                                <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+
+                        <span class="k">if</span> <span class="n">fopo</span><span class="p">:</span>
+                            <span class="n">fopo</span><span class="o">=</span><span class="s1">&#39; ; parent of &#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fopo</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">fopo</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+
+                        <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39; &#39;</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">level</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span> <span class="nb">str</span><span class="p">(</span><span class="n">level</span><span class="p">),</span> <span class="n">fname</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">),</span>
+                            <span class="nb">format</span><span class="p">]</span><span class="o">+</span><span class="n">fops</span><span class="o">+</span><span class="n">fopv</span><span class="p">),</span> <span class="n">fopo</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+                    <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="nb">len</span><span class="p">,</span> <span class="nb">format</span><span class="p">,</span> <span class="n">foptions</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;C&#39;</span><span class="p">:</span> <span class="c1"># collation de</span>
+                <span class="p">(</span><span class="nb">len</span><span class="p">,</span><span class="n">par</span><span class="p">,</span><span class="n">ilen</span><span class="p">,</span><span class="n">op2</span><span class="p">,</span><span class="n">casl</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;=H2sHBB&#39;</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">14</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s1">&#39;zos&#39;</span><span class="p">:</span>   <span class="c1"># data is in EBCDIC</span>
+                    <span class="n">par</span> <span class="o">=</span> <span class="n">ebc2str</span><span class="p">(</span><span class="n">par</span><span class="p">)</span>      <span class="c1"># ebc2str supports PY3</span>
+                <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">hexversion</span> <span class="o">&gt;</span> <span class="mh">0x03010100</span><span class="p">:</span>
+                    <span class="n">par</span> <span class="o">=</span> <span class="n">par</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">casl</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+                    <span class="n">cas</span><span class="o">=</span><span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">14</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">14</span><span class="o">+</span><span class="n">casl</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;XI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">32</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">4</span><span class="p">):</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;HE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;02&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;UQ&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;COLATTR&#39;</span><span class="p">]</span><span class="o">=</span><span class="n">cas</span>
+                <span class="k">else</span><span class="p">:</span>         <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;COLATTR&#39;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;&#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="n">cas</span>
+                <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;L4&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">4</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;LA&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DELD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># disabled descriptor / xopt==2</span>
+
+
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="n">fops</span><span class="o">=</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">ilen</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+                        <span class="n">fops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">ilen</span><span class="p">))</span>  <span class="c1"># Max. internal length given</span>
+                    <span class="n">fopv</span><span class="o">=</span><span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">foptions</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;DE&#39;</span><span class="p">,</span><span class="s1">&#39;MU&#39;</span><span class="p">,</span><span class="s1">&#39;NU&#39;</span><span class="p">,</span><span class="s1">&#39;PE&#39;</span><span class="p">):</span>
+                            <span class="k">continue</span>    <span class="c1"># ignore options from parent</span>
+                        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">fops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                        <span class="k">elif</span> <span class="n">k</span><span class="o">==</span><span class="s1">&#39;COLATTR&#39;</span><span class="p">:</span>
+                            <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+
+                    <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=COLLATING(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fops</span><span class="p">),</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fopv</span><span class="o">+</span><span class="p">[</span><span class="n">par</span><span class="p">])),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+
+
+            <span class="k">elif</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;H&#39;</span><span class="p">:</span> <span class="c1"># Hyper descriptor</span>
+                <span class="p">(</span><span class="nb">len</span><span class="p">,</span><span class="n">fexit</span><span class="p">,</span><span class="n">op2</span><span class="p">,</span><span class="n">pac</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;=H2BxB&#39;</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">12</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;80&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;FI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">32</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="c1"># if not(op1 &amp; 4): foptions[&#39;HE&#39;]=None # unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;02&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;UQ&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DELD&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># disabled descriptor / xopt==2</span>
+                <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;XI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="n">fops</span><span class="o">=</span><span class="p">[</span><span class="n">fname</span><span class="p">,</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">),</span><span class="nb">format</span><span class="p">]</span>
+                    <span class="n">fopv</span><span class="o">=</span><span class="p">[]</span>
+                    <span class="n">pars</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">fexit</span><span class="p">)]</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">foptions</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">fops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+
+                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pac</span><span class="p">):</span>
+                        <span class="n">pars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">12</span><span class="o">+</span><span class="n">j</span><span class="o">*</span><span class="mi">2</span> <span class="p">:</span> <span class="n">i</span><span class="o">+</span><span class="mi">12</span><span class="o">+</span><span class="n">j</span><span class="o">*</span><span class="mi">2</span><span class="o">+</span><span class="mi">2</span><span class="p">])</span>  <span class="c1"># parent list</span>
+
+                    <span class="k">if</span> <span class="n">fopv</span><span class="p">:</span>
+                        <span class="n">fopv</span><span class="o">=</span><span class="s1">&#39; ; &#39;</span><span class="o">+</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fopv</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">fopv</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+                    <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=HYPER(</span><span class="si">%s</span><span class="s1">)</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fops</span><span class="p">),</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pars</span><span class="p">),</span> <span class="n">fopv</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="c1"># phonetic de</span>
+
+                <span class="p">(</span><span class="nb">len</span><span class="p">,</span><span class="n">op2</span><span class="p">,</span><span class="n">par</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;=HBx2s&#39;</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">12</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s1">&#39;zos&#39;</span><span class="p">:</span>   <span class="c1"># data is in EBCDIC</span>
+                    <span class="n">par</span> <span class="o">=</span> <span class="n">ebc2str</span><span class="p">(</span><span class="n">par</span><span class="p">)</span>      <span class="c1"># ebc2str supports PY3</span>
+                <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">hexversion</span> <span class="o">&gt;</span> <span class="mh">0x03010100</span><span class="p">:</span>
+                    <span class="n">par</span> <span class="o">=</span> <span class="n">par</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DELD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># disabled descriptor / xopt==2</span>
+
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="n">fops</span><span class="o">=</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">foptions</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;DE&#39;</span><span class="p">,</span><span class="s1">&#39;MU&#39;</span><span class="p">,</span><span class="s1">&#39;NU&#39;</span><span class="p">,</span><span class="s1">&#39;PE&#39;</span><span class="p">):</span>
+                            <span class="k">continue</span>    <span class="c1"># ignore options from parent</span>
+                        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">fops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+
+                    <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=PHON(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fops</span><span class="p">),</span> <span class="n">par</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="c1"># Sub field/descriptor</span>
+
+                <span class="p">(</span><span class="nb">len</span><span class="p">,</span><span class="n">op2</span><span class="p">,</span><span class="n">par</span><span class="p">,</span><span class="n">ffrom</span><span class="p">,</span><span class="n">fto</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;=HBx2s2H&#39;</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">16</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;XI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">32</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">4</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;04&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;02&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;UQ&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DELD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># disabled descriptor / xopt==2</span>
+
+                <span class="n">parentlist</span> <span class="o">=</span> <span class="p">[(</span><span class="n">par</span><span class="p">,</span> <span class="n">ffrom</span><span class="p">,</span> <span class="n">fto</span><span class="p">),]</span>
+
+                <span class="k">if</span> <span class="n">specials</span><span class="p">:</span>
+                    <span class="n">sb</span> <span class="o">=</span> <span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;SUB&#39;</span><span class="p">,</span> <span class="n">foptions</span><span class="p">,</span> <span class="n">parentlist</span> <span class="p">))</span>
+                    <span class="n">specs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">sb</span> <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;sub:&#39;</span><span class="p">,</span> <span class="n">sb</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="n">fops</span><span class="o">=</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">foptions</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;DE&#39;</span><span class="p">,</span><span class="s1">&#39;MU&#39;</span><span class="p">,</span><span class="s1">&#39;NU&#39;</span><span class="p">,</span><span class="s1">&#39;PE&#39;</span><span class="p">):</span>
+                            <span class="k">continue</span>    <span class="c1"># ignore options from parent</span>
+                        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">fops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+
+                    <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">(</span><span class="si">%d</span><span class="s1">,</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fops</span><span class="p">),</span> <span class="n">par</span><span class="p">,</span> <span class="n">ffrom</span><span class="p">,</span> <span class="n">fto</span><span class="p">))</span>
+
+
+            <span class="k">elif</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;T&#39;</span><span class="p">:</span> <span class="c1"># Super field/descriptor</span>
+
+                <span class="p">(</span><span class="nb">len</span><span class="p">,</span><span class="n">op2</span><span class="p">,</span><span class="n">pac</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;=H2B&#39;</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">6</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">10</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;XI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">32</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">4</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;04&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;02&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;UQ&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DELD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># disabled descriptor / xopt==2</span>
+
+                <span class="n">pars</span><span class="o">=</span><span class="p">[]</span>
+                <span class="n">parentlist</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pac</span><span class="p">):</span>
+                    <span class="p">(</span><span class="n">par</span><span class="p">,</span><span class="n">ffrom</span><span class="p">,</span><span class="n">fto</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;=2s2H&#39;</span><span class="p">,</span><span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">10</span><span class="o">+</span><span class="n">j</span><span class="o">*</span><span class="mi">6</span> <span class="p">:</span> <span class="n">i</span><span class="o">+</span><span class="mi">10</span><span class="o">+</span><span class="n">j</span><span class="o">*</span><span class="mi">6</span><span class="o">+</span><span class="mi">6</span><span class="p">])</span>
+
+                    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s1">&#39;zos&#39;</span><span class="p">:</span>   <span class="c1"># data is in EBCDIC</span>
+                        <span class="n">par</span> <span class="o">=</span> <span class="n">ebc2str</span><span class="p">(</span><span class="n">par</span><span class="p">)</span>      <span class="c1"># ebc2str supports PY3</span>
+                    <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">hexversion</span> <span class="o">&gt;</span> <span class="mh">0x03010100</span><span class="p">:</span>
+                        <span class="n">par</span> <span class="o">=</span> <span class="n">par</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+
+                    <span class="n">pars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%d</span><span class="s1">,</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">par</span><span class="p">,</span><span class="n">ffrom</span><span class="p">,</span><span class="n">fto</span><span class="p">))</span>
+                    <span class="n">parentlist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">(</span><span class="n">par</span><span class="p">,</span><span class="n">ffrom</span><span class="p">,</span><span class="n">fto</span><span class="p">)</span> <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">specials</span><span class="p">:</span>
+                    <span class="n">sp</span> <span class="o">=</span> <span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;SUPER&#39;</span><span class="p">,</span> <span class="n">foptions</span><span class="p">,</span> <span class="n">parentlist</span> <span class="p">)</span> <span class="p">)</span>
+                    <span class="n">specs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">sp</span> <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;super:&#39;</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="n">fops</span><span class="o">=</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">foptions</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;DE&#39;</span><span class="p">,</span><span class="s1">&#39;MU&#39;</span><span class="p">,</span><span class="s1">&#39;NU&#39;</span><span class="p">,</span><span class="s1">&#39;PE&#39;</span><span class="p">):</span>
+                            <span class="k">continue</span>    <span class="c1"># ignore options from parent</span>
+                        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">fops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+
+
+                    <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fops</span><span class="p">),</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pars</span><span class="p">)),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;R&#39;</span><span class="p">:</span> <span class="c1"># Referential Integrity</span>
+
+                <span class="p">(</span><span class="n">rifnr</span><span class="p">,</span><span class="n">ripk</span><span class="p">,</span><span class="n">rifk</span><span class="p">,</span><span class="n">ritype</span><span class="p">,</span><span class="n">riup</span><span class="p">,</span><span class="n">ridel</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;=i2s2s3Bx&#39;</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">4</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">16</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s1">&#39;zos&#39;</span><span class="p">:</span>                     <span class="c1"># data is in EBCDIC</span>
+                    <span class="n">ripk</span><span class="p">,</span> <span class="n">rifk</span> <span class="o">=</span> <span class="n">ebc2str</span><span class="p">(</span><span class="n">ripk</span><span class="p">),</span> <span class="n">ebc2str</span><span class="p">(</span><span class="n">ripk</span><span class="p">)</span> <span class="c1"># ebc2str supports PY3</span>
+                <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">hexversion</span> <span class="o">&gt;</span> <span class="mh">0x03010100</span><span class="p">:</span>
+                    <span class="n">ripk</span><span class="p">,</span> <span class="n">rifk</span> <span class="o">=</span> <span class="n">ripk</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span> <span class="n">rifk</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">ritype</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span> <span class="c1"># Primary file entry</span>
+                        <span class="n">ripf</span><span class="o">=</span><span class="n">fnr</span>
+                        <span class="n">pprefix</span><span class="o">=</span> <span class="s1">&#39;; Primary file referenced by </span><span class="si">%d</span><span class="s1">: &#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">rifnr</span><span class="p">,)</span>
+                    <span class="k">else</span><span class="p">:</span>         <span class="c1"># Secondary file entry</span>
+                        <span class="n">ripf</span><span class="o">=</span><span class="n">rifnr</span>
+                        <span class="n">pprefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+
+                    <span class="n">riaction</span><span class="o">=</span><span class="p">[]</span>
+                    <span class="k">if</span> <span class="n">ridel</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>    <span class="c1"># Delete Action Cascade</span>
+                        <span class="n">riaction</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;DC&#39;</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">ridel</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>  <span class="c1"># Delete Action set NULL</span>
+                        <span class="n">riaction</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;DN&#39;</span><span class="p">)</span>
+                    <span class="c1">#else:          # DX (default)</span>
+                    <span class="k">if</span> <span class="n">riup</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>     <span class="c1"># Update Action Cascade</span>
+                        <span class="n">riaction</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;UC&#39;</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">riup</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>   <span class="c1"># Update Action set NULL</span>
+                        <span class="n">riaction</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;UN&#39;</span><span class="p">)</span>
+                    <span class="c1">#else:          #UX no action (default)</span>
+
+                    <span class="k">if</span> <span class="n">riaction</span><span class="p">:</span>
+                        <span class="n">riaction</span><span class="o">=</span><span class="s1">&#39;/&#39;</span><span class="o">+</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">riaction</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">riaction</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+
+                    <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">=REFINT(</span><span class="si">%s</span><span class="s1">,</span><span class="si">%d</span><span class="s1">,</span><span class="si">%s%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pprefix</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">ripk</span><span class="p">,</span> <span class="n">ripf</span><span class="p">,</span> <span class="n">rifk</span><span class="p">,</span> <span class="n">riaction</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">flen</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>   <span class="c1"># temp fix bug in 6.2.0</span>
+                        <span class="n">flen</span><span class="o">=</span><span class="mi">16</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span> <span class="s2">&quot;Unknown LF type </span><span class="si">%s</span><span class="s2"> </span><span class="si">%x</span><span class="s2"> at offset </span><span class="si">%04X</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ftype</span><span class="p">,</span> <span class="nb">ord</span><span class="p">(</span><span class="n">ftype</span><span class="p">),</span> <span class="n">i</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+                <span class="n">dump</span><span class="p">(</span><span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">,</span><span class="s1">&#39;LF buffer&#39;</span><span class="p">)</span>
+                <span class="k">break</span>
+
+            <span class="n">i</span><span class="o">+=</span><span class="n">flen</span>  <span class="c1">#  next FDX element</span>
+
+    <span class="k">elif</span> <span class="n">xopt</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>   <span class="c1"># ==== LF/I ====</span>
+        <span class="k">pass</span>
+
+    <span class="k">else</span><span class="p">:</span>           <span class="c1"># ==== evaluate LF/S structured buffer ====</span>
+
+        <span class="k">if</span> <span class="n">specials</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;fields.readfdt(): specials option not supported with LF/S type&#39;</span><span class="p">)</span>
+
+        <span class="c1"># extract total length and number of fields from record header</span>
+        <span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">numfields</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;=2H&#39;</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">restlen</span> <span class="o">=</span> <span class="nb">len</span>
+        <span class="n">last_ftype</span><span class="o">=</span><span class="s1">&#39; &#39;</span>
+        <span class="n">unfinished</span><span class="o">=</span><span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="nb">len</span><span class="p">,</span><span class="mi">8</span><span class="p">):</span>
+                <span class="c1"># 1    2     4   5i    6i  7c     8i</span>
+            <span class="p">(</span><span class="n">ftype</span><span class="p">,</span><span class="n">fname</span><span class="p">,</span><span class="n">op1</span><span class="p">,</span><span class="n">level</span><span class="p">,</span><span class="nb">len</span><span class="p">,</span><span class="nb">format</span><span class="p">,</span><span class="n">op2</span><span class="p">)</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s1">&#39;=c2s3BcB&#39;</span><span class="p">,</span> <span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">8</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s1">&#39;zos&#39;</span><span class="p">:</span>  <span class="c1"># data is in EBCDI; ebc2str() supports PY3</span>
+                <span class="n">ftype</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="nb">format</span> <span class="o">=</span> <span class="n">ebc2str</span><span class="p">(</span><span class="n">ftype</span><span class="p">),</span> <span class="n">ebc2str</span><span class="p">(</span><span class="n">fname</span><span class="p">),</span> <span class="n">ebc2str</span><span class="p">(</span><span class="nb">format</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">hexversion</span> <span class="o">&gt;</span> <span class="mh">0x03010100</span><span class="p">:</span>
+                <span class="n">ftype</span><span class="p">,</span><span class="n">fname</span><span class="p">,</span><span class="nb">format</span> <span class="o">=</span> <span class="n">ftype</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span> <span class="n">fname</span><span class="o">.</span><span class="n">decode</span><span class="p">(),</span> <span class="nb">format</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+
+            <span class="n">foptions</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="k">if</span> <span class="n">last_ftype</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">,</span> <span class="s1">&#39;H&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">ftype</span> <span class="o">&gt;</span> <span class="s1">&#39;</span><span class="se">\x00</span><span class="s1">&#39;</span><span class="p">:</span>  <span class="c1"># output Super or Hyper definition</span>
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="n">fops</span><span class="p">,</span> <span class="n">pars</span><span class="p">,</span> <span class="n">fopv</span> <span class="o">=</span> <span class="n">unfinished</span>
+
+                    <span class="k">if</span> <span class="n">fopv</span><span class="p">:</span>
+                        <span class="n">fopv</span><span class="o">=</span><span class="s1">&#39; ; &#39;</span><span class="o">+</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fopv</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">fopv</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+                    <span class="k">if</span> <span class="n">last_ftype</span> <span class="o">==</span> <span class="s1">&#39;H&#39;</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=HYPER(</span><span class="si">%s</span><span class="s1">)</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fops</span><span class="p">),</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pars</span><span class="p">),</span> <span class="n">fopv</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fops</span><span class="p">),</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pars</span><span class="p">)),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+
+                <span class="n">last_ftype</span><span class="o">=</span><span class="s1">&#39; &#39;</span>
+
+
+            <span class="k">if</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\x00</span><span class="s1">&#39;</span><span class="p">:</span>
+                <span class="c1"># continuation of Super or Hyper: collect parent info into unfinished[1]</span>
+                <span class="k">if</span> <span class="n">last_ftype</span><span class="o">==</span><span class="s1">&#39;T&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                         <span class="n">unfinished</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%c%c</span><span class="s1">(</span><span class="si">%d</span><span class="s1">,</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="n">level</span><span class="p">),</span><span class="nb">chr</span><span class="p">(</span><span class="nb">len</span><span class="p">),</span><span class="nb">ord</span><span class="p">(</span><span class="nb">format</span><span class="p">),</span><span class="n">op2</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="n">last_ftype</span><span class="o">==</span><span class="s1">&#39;H&#39;</span><span class="p">:</span> <span class="c1"># hyper DE</span>
+                    <span class="n">par1</span><span class="o">=</span><span class="n">fname</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="nb">chr</span><span class="p">(</span><span class="n">op1</span><span class="p">)</span>
+                    <span class="n">par2</span><span class="o">=</span><span class="nb">chr</span><span class="p">(</span><span class="n">level</span><span class="p">)</span><span class="o">+</span><span class="nb">chr</span><span class="p">(</span><span class="nb">len</span><span class="p">)</span>
+                    <span class="n">par3</span><span class="o">=</span><span class="nb">format</span><span class="o">+</span><span class="nb">chr</span><span class="p">(</span><span class="n">op2</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">par</span> <span class="ow">in</span> <span class="p">(</span><span class="n">par1</span><span class="p">,</span><span class="n">par2</span><span class="p">,</span><span class="n">par3</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">par</span> <span class="o">&gt;</span> <span class="s1">&#39;</span><span class="se">\x00\x00</span><span class="s1">&#39;</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                                <span class="n">unfinished</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">par</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39; &#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">8</span><span class="p">:</span>
+                        <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39; &#39;</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">level</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span> <span class="nb">str</span><span class="p">(</span><span class="n">level</span><span class="p">),</span> <span class="n">fname</span><span class="p">]</span> <span class="o">+</span>
+                                <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">foptions</span><span class="o">.</span><span class="n">keys</span><span class="p">()]),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+
+                    <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">foptions</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">parentof</span><span class="o">=</span><span class="p">[]</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;FI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">32</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">4</span><span class="p">:</span> <span class="n">parentof</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;PHON&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">parentof</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;SUBSUPER&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;UQ&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NB&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># new with V8</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>  <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NV&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>  <span class="mi">32</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;HF&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># only OpenSystems</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;XI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;LA&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">4</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;LB&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># new with V8</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NN&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">op2</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NC&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                    <span class="k">if</span> <span class="n">parentof</span><span class="p">:</span>
+                        <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PARENT_OF&#39;</span><span class="p">]</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parentof</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                        <span class="n">fops</span><span class="o">=</span><span class="p">[]</span>
+                        <span class="n">fopv</span><span class="o">=</span><span class="p">[]</span>
+                        <span class="n">fopo</span><span class="o">=</span><span class="p">[]</span>
+                        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">foptions</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                            <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;PE&#39;</span> <span class="ow">and</span> <span class="n">level</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+                                <span class="k">continue</span>    <span class="c1"># omit PE on field level</span>
+                            <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="n">fops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                            <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;PARENT_OF&#39;</span><span class="p">:</span>
+                                <span class="n">fopo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+
+                        <span class="k">if</span> <span class="n">fopo</span><span class="p">:</span>
+                            <span class="n">fopo</span><span class="o">=</span><span class="s1">&#39; ; parent of &#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fopo</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">fopo</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+
+                        <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39; &#39;</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="n">level</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span> <span class="nb">str</span><span class="p">(</span><span class="n">level</span><span class="p">),</span> <span class="n">fname</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">),</span> <span class="nb">format</span><span class="p">]</span><span class="o">+</span><span class="n">fops</span><span class="o">+</span><span class="n">fopv</span><span class="p">),</span> <span class="n">fopo</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+
+                    <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="nb">len</span><span class="p">,</span> <span class="nb">format</span><span class="p">,</span> <span class="n">foptions</span><span class="p">))</span>
+
+            <span class="k">elif</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;C&#39;</span><span class="p">:</span> <span class="c1"># collation de</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;XI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">32</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">4</span><span class="p">):</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;HE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;02&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;UQ&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">level</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;COLATTR&#39;</span><span class="p">]</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>            <span class="c1"># Collation exit number</span>
+                <span class="n">par</span> <span class="o">=</span> <span class="nb">format</span><span class="o">+</span><span class="nb">chr</span><span class="p">(</span><span class="n">op2</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="n">fops</span><span class="o">=</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span>
+                    <span class="n">fopv</span><span class="o">=</span><span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">foptions</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;DE&#39;</span><span class="p">,</span><span class="s1">&#39;MU&#39;</span><span class="p">,</span><span class="s1">&#39;NU&#39;</span><span class="p">,</span><span class="s1">&#39;PE&#39;</span><span class="p">):</span>
+                            <span class="k">continue</span>    <span class="c1"># ignore options from parent</span>
+                        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">fops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                        <span class="k">elif</span> <span class="n">k</span><span class="o">==</span><span class="s1">&#39;COLATTR&#39;</span><span class="p">:</span>
+                            <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+
+                    <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=COLLATING(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fops</span><span class="p">),</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fopv</span><span class="o">+</span><span class="p">[</span><span class="n">par</span><span class="p">])),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;H&#39;</span><span class="p">:</span> <span class="c1"># collation de</span>
+                <span class="n">last_ftype</span><span class="o">=</span><span class="s1">&#39;H&#39;</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;80&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;FI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">32</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="c1"># if not(op1 &amp; 4): foptions[&#39;HE&#39;]=None # unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;02&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;UQ&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="n">fops</span><span class="o">=</span><span class="p">[</span><span class="n">fname</span><span class="p">,</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">),</span><span class="nb">format</span><span class="p">]</span>
+                    <span class="n">fopv</span><span class="o">=</span><span class="p">[]</span>
+                    <span class="n">pars</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">level</span><span class="p">)]</span>               <span class="c1"># first element is exit number</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">foptions</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                        <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">fops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">fopv</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+
+                    <span class="n">unfinished</span><span class="o">=</span><span class="p">[</span><span class="n">fops</span><span class="p">,</span> <span class="n">pars</span><span class="p">,</span> <span class="n">fopv</span><span class="p">]</span>
+
+            <span class="k">elif</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="c1"># phonetic de</span>
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=PHON(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="nb">chr</span><span class="p">(</span><span class="n">level</span><span class="p">)</span><span class="o">+</span><span class="nb">chr</span><span class="p">(</span><span class="nb">len</span><span class="p">)),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="c1"># Sub field/descriptor</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;XI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">32</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">4</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;04&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;02&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;UQ&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="n">pname</span> <span class="o">=</span> <span class="nb">chr</span><span class="p">(</span><span class="n">level</span><span class="p">)</span><span class="o">+</span><span class="nb">chr</span><span class="p">(</span><span class="nb">len</span><span class="p">)</span>   <span class="c1"># construct parent name</span>
+
+                    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s1">&#39;zos&#39;</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">hexversion</span> <span class="o">&lt;</span> <span class="mh">0x03010100</span><span class="p">:</span>  <span class="c1"># data is in EBCDI</span>
+                        <span class="n">pname</span> <span class="o">=</span> <span class="n">ebc2str</span><span class="p">(</span><span class="n">pname</span><span class="p">)</span> <span class="c1"># ebc2str() supports PY3</span>
+
+                    <span class="n">par</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%d</span><span class="s1">,</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pname</span><span class="p">,</span> <span class="nb">ord</span><span class="p">(</span><span class="nb">format</span><span class="p">),</span><span class="n">op2</span><span class="p">)</span>
+
+                    <span class="n">fops</span><span class="o">=</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">foptions</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;DE&#39;</span><span class="p">,</span><span class="s1">&#39;MU&#39;</span><span class="p">,</span><span class="s1">&#39;NU&#39;</span><span class="p">,</span><span class="s1">&#39;PE&#39;</span><span class="p">):</span>
+                            <span class="k">continue</span>    <span class="c1"># ignore options from parent</span>
+                    <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fops</span><span class="p">),</span> <span class="n">par</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+
+
+            <span class="k">elif</span> <span class="n">ftype</span> <span class="o">==</span> <span class="s1">&#39;T&#39;</span><span class="p">:</span> <span class="c1"># Super field/descriptor</span>
+                <span class="n">last_ftype</span><span class="o">=</span><span class="s1">&#39;T&#39;</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span> <span class="mi">128</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;DE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">64</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;XI&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">32</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>  <span class="mi">16</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;NU&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">8</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">4</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;04&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">2</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;02&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span> <span class="c1"># unused in ADA74</span>
+                <span class="k">if</span> <span class="n">op1</span> <span class="o">&amp;</span>   <span class="mi">1</span><span class="p">:</span> <span class="n">foptions</span><span class="p">[</span><span class="s1">&#39;UQ&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="n">fops</span><span class="o">=</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">foptions</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;DE&#39;</span><span class="p">,</span><span class="s1">&#39;MU&#39;</span><span class="p">,</span><span class="s1">&#39;NU&#39;</span><span class="p">,</span><span class="s1">&#39;PE&#39;</span><span class="p">):</span>
+                            <span class="k">continue</span>    <span class="c1"># ignore options from parent</span>
+
+                    <span class="n">pname</span> <span class="o">=</span> <span class="nb">chr</span><span class="p">(</span><span class="n">level</span><span class="p">)</span><span class="o">+</span><span class="nb">chr</span><span class="p">(</span><span class="nb">len</span><span class="p">)</span>   <span class="c1"># construct parent name</span>
+
+                    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s1">&#39;zos&#39;</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">hexversion</span> <span class="o">&lt;</span> <span class="mh">0x03010100</span><span class="p">:</span>  <span class="c1"># data is in EBCDI</span>
+                        <span class="n">pname</span> <span class="o">=</span> <span class="n">ebc2str</span><span class="p">(</span><span class="n">pname</span><span class="p">)</span> <span class="c1"># ebc2str() supports PY3</span>
+
+                    <span class="n">par</span><span class="o">=</span><span class="p">[</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%d</span><span class="s1">,</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pname</span><span class="p">,</span> <span class="nb">ord</span><span class="p">(</span><span class="nb">format</span><span class="p">),</span><span class="n">op2</span><span class="p">)</span> <span class="p">]</span> <span class="c1"># first parent</span>
+
+                    <span class="n">unfinished</span><span class="o">=</span><span class="p">[</span><span class="n">fops</span><span class="p">,</span><span class="n">par</span><span class="p">,[]]</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span> <span class="s2">&quot;Unknown LF type </span><span class="si">%s</span><span class="s2"> </span><span class="si">%x</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ftype</span><span class="p">,</span> <span class="nb">ord</span><span class="p">(</span><span class="n">ftype</span><span class="p">)),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+                <span class="n">dump</span><span class="p">(</span><span class="n">cf</span><span class="o">.</span><span class="n">rb</span><span class="p">,</span><span class="s1">&#39;LF buffer&#39;</span><span class="p">)</span>
+
+        <span class="c1"># all FDE elements processed</span>
+        <span class="k">if</span> <span class="n">last_ftype</span> <span class="o">&gt;</span> <span class="s1">&#39; &#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">printfdt</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span> <span class="c1">#output started line</span>
+
+                <span class="n">fops</span><span class="p">,</span> <span class="n">pars</span><span class="p">,</span> <span class="n">fopv</span> <span class="o">=</span> <span class="n">unfinished</span>
+
+                <span class="k">if</span> <span class="n">fopv</span><span class="p">:</span>
+                    <span class="n">fopv</span><span class="o">=</span><span class="s1">&#39; ; &#39;</span><span class="o">+</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fopv</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">fopv</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+                <span class="k">if</span> <span class="n">last_ftype</span> <span class="o">==</span> <span class="s1">&#39;H&#39;</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=HYPER(</span><span class="si">%s</span><span class="s1">)</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fops</span><span class="p">),</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pars</span><span class="p">),</span> <span class="n">fopv</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fops</span><span class="p">),</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pars</span><span class="p">)),</span> <span class="n">file</span><span class="o">=</span><span class="n">fd</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">specials</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+        <span class="n">od</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="n">specs</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;OrderedDict=</span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">od</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fields</span><span class="p">,</span> <span class="n">od</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fields</span></div>
+<span class="c1"># -- end readFDT</span>
+
+<div class="viewcode-block" id="fndefstr"><a class="viewcode-back" href="../../../modules.html#adapya.adabas.fields.fndefstr">[docs]</a><span class="k">def</span> <span class="nf">fndefstr</span><span class="p">(</span><span class="n">fnlev</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">fnlen</span><span class="p">,</span> <span class="n">fnform</span><span class="p">,</span> <span class="n">fnopt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;return fndef string from field element</span>
+
+<span class="sd">    &gt;&gt;&gt; fndefstr(1,&#39;UT&#39;,6,&#39;U&#39;,{&#39;NU&#39;:None,&#39;DE&#39;:None,&#39;DT&#39;:&#39;TIME&#39;})</span>
+<span class="sd">    &#39;1,UT,6,U,DE,DT=E(TIME),NU&#39;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fndef</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1">,</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fnlev</span><span class="p">,</span><span class="n">fn</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fnlen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fnform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="c1"># might be None for group fields</span>
+        <span class="n">fndef</span><span class="o">+=</span><span class="s1">&#39;,&#39;</span><span class="o">+</span><span class="nb">repr</span><span class="p">(</span><span class="n">fnlen</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;,&#39;</span><span class="o">+</span><span class="n">fnform</span>
+    <span class="n">comnt</span> <span class="o">=</span> <span class="n">fnam</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fnopt</span><span class="p">):</span>
+        <span class="n">olist</span><span class="o">=</span><span class="p">[]</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">fnopt</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;DT&#39;</span><span class="p">:</span>
+                <span class="n">olist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="o">+</span> <span class="s1">&#39;=E(&#39;</span> <span class="o">+</span><span class="n">v</span><span class="o">+</span> <span class="s1">&#39;)&#39;</span> <span class="p">)</span>
+                <span class="n">dttype</span><span class="o">=</span><span class="n">v</span>
+            <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;longname&#39;</span><span class="p">:</span>
+                <span class="n">fnam</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;comment&#39;</span><span class="p">:</span>
+                <span class="n">cmnt</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">olist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="n">olist</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="n">fndef</span><span class="o">+=</span><span class="s1">&#39;,&#39;</span><span class="o">+</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">olist</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fnam</span> <span class="ow">or</span> <span class="n">comnt</span><span class="p">:</span>
+            <span class="n">fndef</span><span class="o">+=</span><span class="s1">&#39;;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fnam</span><span class="p">,</span><span class="n">cmnt</span><span class="p">)</span>   <span class="c1"># append ;longname comment</span>
+    <span class="k">return</span> <span class="n">fndef</span></div>
+
+
+<div class="viewcode-block" id="str2fndef"><a class="viewcode-back" href="../../../modules.html#adapya.adabas.fields.str2fndef">[docs]</a><span class="k">def</span> <span class="nf">str2fndef</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;return fndef string from field definition string</span>
+
+<span class="sd">    :param verbose: print resulting fndef line</span>
+
+<span class="sd">    &gt;&gt;&gt; fnlev, fn, fnlen, fnform, fnopt = str2fndef(&#39;1,UT,6,U,DE,DT=E(TIME),NU&#39;)</span>
+<span class="sd">    &gt;&gt;&gt; print( fnlev, fn, fnlen, fnform, fnopt)</span>
+<span class="sd">    1,&#39;UT&#39;,6,&#39;U&#39;,{&#39;NU&#39;:None,&#39;DE&#39;:None,&#39;DT&#39;:&#39;TIME&#39;}</span>
+
+<span class="sd">    todo: special descriptors not yet supported</span>
+<span class="sd">          PE option set with members of PE group?</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">re</span>
+
+    <span class="n">fnlev</span><span class="p">,</span><span class="n">fn</span><span class="p">,</span><span class="n">fnlen</span><span class="p">,</span><span class="n">fnform</span><span class="p">,</span><span class="n">fnopt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">,{}</span>
+
+    <span class="n">cmnt</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">fnam</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">poshash</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span>
+    <span class="n">possemi</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+    <span class="n">s3</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">poshash</span><span class="o">==</span><span class="mi">0</span> <span class="ow">or</span> <span class="n">possemi</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>  <span class="c1"># s.startswith(&#39;#&#39;):   # comment</span>
+        <span class="k">return</span> <span class="n">fnlev</span><span class="p">,</span><span class="n">fn</span><span class="p">,</span><span class="n">fnlen</span><span class="p">,</span><span class="n">fnform</span><span class="p">,</span><span class="n">fnopt</span>
+    <span class="k">elif</span> <span class="n">poshash</span> <span class="o">&lt;</span> <span class="n">possemi</span> <span class="ow">and</span> <span class="n">poshash</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">:</span>
+        <span class="n">s2</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span>   <span class="c1"># remove any comment after hash sign</span>
+        <span class="n">s3</span> <span class="o">=</span> <span class="n">s2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">possemi</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">s2</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>   <span class="c1"># definition;longname comment</span>
+        <span class="n">s3</span> <span class="o">=</span> <span class="n">s2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># print( &#39;s=%s&#39; % s)</span>
+        <span class="c1"># print( &#39;s2=%s, s3=%s&#39; % (s2, s3))</span>
+    <span class="k">else</span><span class="p">:</span>
+            <span class="n">s2</span><span class="o">=</span> <span class="n">s</span><span class="p">,</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s3</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">fnam</span><span class="p">,</span><span class="n">cmnt</span> <span class="o">=</span> <span class="n">s3</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">s3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">fnam</span> <span class="o">=</span> <span class="n">s3</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">ss</span> <span class="o">=</span> <span class="n">s2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>   <span class="c1"># tokenize by comma separator</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span> <span class="n">ss</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fnlev</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">ss</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">pass</span>            <span class="c1"># might be special descriptor definition</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="n">ss</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>  <span class="c1"># field name</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">2</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fnlen</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">ss</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="c1">#field length</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ss</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;PE&#39;</span><span class="p">):</span>
+                <span class="c1"># check if occurrences are specified  PE(100)</span>
+                <span class="n">mat</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;\( (\d+) \)&quot;&quot;&quot;</span><span class="p">,</span> <span class="n">ss</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">2</span><span class="p">:],</span><span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">mat</span><span class="p">:</span>
+                    <span class="n">occs</span> <span class="o">=</span> <span class="nb">int</span> <span class="p">(</span><span class="n">mat</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+                    <span class="n">fnopt</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">occs</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">fnopt</span><span class="p">[</span><span class="s1">&#39;PE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="n">fnform</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>   <span class="c1"># format is set to blank</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">3</span><span class="p">:</span>
+        <span class="n">fnform</span> <span class="o">=</span> <span class="n">ss</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>  <span class="c1"># field format</span>
+
+    <span class="k">for</span> <span class="n">kv</span> <span class="ow">in</span> <span class="n">ss</span><span class="p">[</span><span class="mi">4</span><span class="p">:]:</span>   <span class="c1"># field options to dictionary</span>
+        <span class="n">oo</span> <span class="o">=</span> <span class="n">kv</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">oo</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">kv</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;MU&#39;</span><span class="p">):</span>
+                <span class="c1"># check if occurrences are specified  MU(30)</span>
+                <span class="n">mat</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;\( (\d+) \)&quot;&quot;&quot;</span><span class="p">,</span> <span class="n">kv</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span><span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">mat</span><span class="p">:</span>
+                    <span class="n">occs</span> <span class="o">=</span> <span class="nb">int</span> <span class="p">(</span><span class="n">mat</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+                    <span class="n">fnopt</span><span class="p">[</span><span class="s1">&#39;MU&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">occs</span>
+                    <span class="k">continue</span>  <span class="c1"># next option</span>
+            <span class="n">fnopt</span><span class="p">[</span><span class="n">kv</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">o1</span><span class="p">,</span><span class="n">o2</span> <span class="o">=</span> <span class="n">oo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span><span class="n">oo</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">o2</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;E(&#39;</span><span class="p">):</span>
+                <span class="n">o2</span><span class="o">=</span><span class="n">o2</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>         <span class="c1"># remove edit mask</span>
+            <span class="n">fnopt</span><span class="p">[</span><span class="n">o1</span><span class="p">]</span> <span class="o">=</span> <span class="n">o2</span>
+
+    <span class="k">if</span> <span class="n">fnam</span><span class="p">:</span>
+        <span class="n">fnopt</span><span class="p">[</span><span class="s1">&#39;longname&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fnam</span>
+    <span class="k">if</span> <span class="n">cmnt</span><span class="p">:</span>
+        <span class="n">fnopt</span><span class="p">[</span><span class="s1">&#39;comment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cmnt</span>
+
+    <span class="k">return</span> <span class="n">fnlev</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">fnlen</span><span class="p">,</span> <span class="n">fnform</span><span class="p">,</span> <span class="n">fnopt</span></div>
+
+<div class="viewcode-block" id="fdtfile2list"><a class="viewcode-back" href="../../../modules.html#adapya.adabas.fields.fdtfile2list">[docs]</a><span class="k">def</span> <span class="nf">fdtfile2list</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="n">withname</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read FDT from file &#39;filename&#39;</span>
+<span class="sd">       return list of fdtlines with comments and</span>
+<span class="sd">       whitespace removed</span>
+
+<span class="sd">       :param filename: if file name is a string read from the file</span>
+<span class="sd">            otherwise it is assumed to be a StringIO object</span>
+
+<span class="sd">       :param withname: if set to 1 the longname is added to the fndef</span>
+<span class="sd">            string separated by semicolon</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">re</span>
+    <span class="n">fdtlines</span><span class="o">=</span><span class="p">[]</span>
+    <span class="n">longname</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">=</span><span class="n">filename</span>  <span class="c1"># assuming StringIO object</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">):</span> <span class="k">continue</span>  <span class="c1"># ignore comment lines</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">):</span> <span class="k">continue</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>                 <span class="c1"># start of comment part</span>
+        <span class="k">if</span> <span class="n">j</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">m</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;[-\w]+&#39;</span><span class="p">,</span><span class="n">line</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># first word after ;</span>
+            <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+                <span class="n">ln</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">()</span>
+                <span class="n">longname</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">()</span>
+                <span class="n">comment</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="n">m</span><span class="o">.</span><span class="n">end</span><span class="p">()</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">longname</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+                <span class="n">comment</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="n">s1</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">j</span><span class="p">])</span> <span class="c1"># remove white space from fdt part</span>
+        <span class="k">if</span> <span class="n">withname</span><span class="p">:</span>
+            <span class="n">fdtlines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s1</span><span class="o">+</span><span class="s1">&#39;;&#39;</span><span class="o">+</span><span class="n">longname</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">comment</span><span class="p">)</span> <span class="c1"># longname might be empty</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fdtlines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s1</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">fdtlines</span></div>
+
+
+<div class="viewcode-block" id="genfdt"><a class="viewcode-back" href="../../../modules.html#adapya.adabas.fields.genfdt">[docs]</a><span class="k">def</span> <span class="nf">genfdt</span><span class="p">(</span><span class="n">fbuf</span><span class="p">,</span><span class="n">fields</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Generate FDE i.e. LF/S elements into buffer</span>
+<span class="sd">    Convert data to mainframe architecture, i.e. in</span>
+<span class="sd">    network byte order and EBCDIC</span>
+
+<span class="sd">    :param fbuf: writable buffer</span>
+
+<span class="sd">    :param fields: a list where each element is a tuple with</span>
+<span class="sd">                   level, field name, length, format and options</span>
+
+<span class="sd">                   Example tuple:</span>
+<span class="sd">                     (1,&#39;C7&#39;,0,&#39;A&#39;, {&#39;LB&#39;: None,&#39;MU&#39;: None,&#39;NU&#39;: None,&#39;NV&#39;: None})</span>
+
+<span class="sd">    :returns: size of FDT in buffer</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#o no support of special DE yet which might need several FDEs</span>
+    <span class="c1">#o no support of LF/X structure yet, hence no V82 features (datetime, system fields, deleted fields,DE)</span>
+
+    <span class="kn">import</span> <span class="nn">struct</span><span class="o">,</span><span class="nn">conv</span>
+
+    <span class="n">lenf</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span>
+
+    <span class="n">fbuf</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span><span class="o">=</span><span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;!2H&#39;</span><span class="p">,</span> <span class="n">lenf</span><span class="o">*</span><span class="mi">8</span><span class="o">+</span><span class="mi">4</span><span class="p">,</span> <span class="n">lenf</span><span class="p">)</span>
+
+    <span class="n">i</span><span class="o">=</span><span class="mi">4</span>
+    <span class="n">prevPE</span><span class="o">=</span><span class="mi">0</span>    <span class="c1"># previous PE group definition</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
+        <span class="p">(</span><span class="n">level</span><span class="p">,</span><span class="n">fname</span><span class="p">,</span><span class="n">length</span><span class="p">,</span><span class="nb">format</span><span class="p">,</span><span class="n">options</span><span class="p">)</span> <span class="o">=</span> <span class="n">field</span>
+
+        <span class="n">op1</span><span class="o">=</span><span class="n">op2</span><span class="o">=</span><span class="mi">0</span>
+        <span class="k">if</span> <span class="n">level</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">prevPE</span><span class="o">=</span><span class="mi">0</span>
+
+        <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39; &#39;</span><span class="p">:</span>           <span class="c1"># group or PE group</span>
+            <span class="k">if</span> <span class="s1">&#39;PE&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span>
+                <span class="n">op1</span> <span class="o">|=</span> <span class="mi">8</span>
+                <span class="n">prevPE</span><span class="o">=</span><span class="mi">1</span>            <span class="c1"># remember in PE</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">level</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">prevPE</span><span class="p">:</span>
+                <span class="n">op1</span> <span class="o">|=</span>   <span class="mi">8</span>          <span class="c1"># set PE option within group</span>
+            <span class="k">if</span> <span class="s1">&#39;DE&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op1</span> <span class="o">|=</span> <span class="mi">128</span>
+            <span class="k">if</span> <span class="s1">&#39;FI&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op1</span> <span class="o">|=</span>  <span class="mi">64</span>
+            <span class="k">if</span> <span class="s1">&#39;MU&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op1</span> <span class="o">|=</span>  <span class="mi">32</span>
+            <span class="k">if</span> <span class="s1">&#39;NU&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op1</span> <span class="o">|=</span>  <span class="mi">16</span>
+            <span class="c1">#if &#39;PE&#39; in options: op1 |=   8</span>
+            <span class="c1">#if &#39;PHON PARENT&#39; in options: op1 |=   4</span>
+            <span class="c1">#if &#39;SUBP PARENT&#39; in options: op1 |=   2</span>
+            <span class="k">if</span> <span class="s1">&#39;UQ&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op1</span> <span class="o">|=</span>   <span class="mi">1</span>
+            <span class="k">if</span> <span class="s1">&#39;NB&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op2</span> <span class="o">|=</span> <span class="mi">128</span>
+            <span class="k">if</span> <span class="s1">&#39;NV&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op2</span> <span class="o">|=</span>  <span class="mi">64</span>
+            <span class="k">if</span> <span class="s1">&#39;HF&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op2</span> <span class="o">|=</span>  <span class="mi">32</span>
+            <span class="k">if</span> <span class="s1">&#39;XI&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op2</span> <span class="o">|=</span>  <span class="mi">16</span>
+            <span class="k">if</span> <span class="s1">&#39;LA&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op2</span> <span class="o">|=</span>   <span class="mi">8</span>
+            <span class="k">if</span> <span class="s1">&#39;LB&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op2</span> <span class="o">|=</span>   <span class="mi">4</span>
+            <span class="k">if</span> <span class="s1">&#39;NN&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op2</span> <span class="o">|=</span>   <span class="mi">2</span>
+            <span class="k">if</span> <span class="s1">&#39;NC&#39;</span> <span class="ow">in</span> <span class="n">options</span><span class="p">:</span> <span class="n">op2</span> <span class="o">|=</span>   <span class="mi">1</span>
+
+        <span class="c1"># Field type  (ftype,fname,op1,level,length,format,op2)</span>
+        <span class="n">fbuf</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">8</span><span class="p">]</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="s1">&#39;=c2s3BcB&#39;</span><span class="p">,</span> <span class="n">conv</span><span class="o">.</span><span class="n">str2ebc</span><span class="p">(</span><span class="s1">&#39;F&#39;</span><span class="p">),</span>
+                        <span class="n">conv</span><span class="o">.</span><span class="n">str2ebc</span><span class="p">(</span><span class="n">fname</span><span class="p">),</span> <span class="n">op1</span><span class="p">,</span> <span class="n">level</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span>
+                        <span class="n">conv</span><span class="o">.</span><span class="n">str2ebc</span><span class="p">(</span><span class="nb">format</span><span class="p">),</span> <span class="n">op2</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">8</span>
+
+    <span class="k">return</span> <span class="n">i</span></div>
+
+<div class="viewcode-block" id="makefdt"><a class="viewcode-back" href="../../../modules.html#adapya.adabas.fields.makefdt">[docs]</a><span class="k">def</span> <span class="nf">makefdt</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span><span class="n">infdt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create LF/S structure in buffer buf from FDT definition</span>
+
+<span class="sd">    :param infdt: filename</span>
+<span class="sd">                   or field defns separated by % - &#39;1,AA,2,A%1,AB,1,B&#39;</span>
+<span class="sd">                   or StringIO object with FDT definition lines</span>
+<span class="sd">                   or a list/tuple of field elements of the form</span>
+<span class="sd">                   1,&#39;UT&#39;,6,&#39;U&#39;,{&#39;NU&#39;:None,&#39;DE&#39;:None,&#39;DT&#39;:&#39;TIME&#39;}</span>
+
+<span class="sd">    :return: length of LF buffer *buf* filled</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fieldlist</span><span class="o">=</span><span class="p">[]</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">infdt</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">infdt</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span><span class="nb">tuple</span><span class="p">):</span>  <span class="c1"># already internal form</span>
+            <span class="n">fieldlist</span><span class="o">=</span><span class="n">infdt</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fdtlist</span><span class="o">=</span><span class="n">infdt</span>                   <span class="c1"># (&#39;1,AA,2,A&#39;,&#39;1,AB,1,B&#39;)</span>
+    <span class="k">else</span><span class="p">:</span>   <span class="c1"># filename or StringIO object (in buffer readlines)</span>
+        <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">infdt</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span> <span class="n">infdt</span><span class="p">,</span> <span class="n">infdt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">infdt</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">infdt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span><span class="s1">&#39;&quot;&#39;</span><span class="p">):</span>
+                <span class="n">infdt</span><span class="o">=</span><span class="n">infdt</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="nb">print</span><span class="p">(</span> <span class="n">infdt</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">infdt</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span><span class="s1">&#39;&quot;&#39;</span><span class="p">):</span>
+                <span class="n">infdt</span><span class="o">=</span><span class="n">infdt</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="nb">print</span><span class="p">(</span> <span class="n">infdt</span><span class="p">)</span>
+            <span class="n">fdtlist</span> <span class="o">=</span> <span class="n">infdt</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;%&#39;</span><span class="p">)</span>   <span class="c1"># &#39;1,AA,2,A%1,AB,1,B&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fdtlist</span> <span class="o">=</span> <span class="n">fdtfile2list</span><span class="p">(</span><span class="n">infdt</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">fieldlist</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fdtlist</span><span class="p">:</span>
+            <span class="n">fnlev</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">fnlen</span><span class="p">,</span> <span class="n">fnform</span><span class="p">,</span> <span class="n">fnopt</span> <span class="o">=</span> <span class="n">str2fndef</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">fieldlist</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">fnlev</span><span class="p">,</span><span class="n">fn</span><span class="p">,</span><span class="n">fnlen</span><span class="p">,</span><span class="n">fnform</span><span class="p">,</span><span class="n">fnopt</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span> <span class="n">fieldlist</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">genfdt</span><span class="p">(</span><span class="n">buf</span><span class="p">,</span><span class="n">fieldlist</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="fdtfile2fieldstring"><a class="viewcode-back" href="../../../modules.html#adapya.adabas.fields.fdtfile2fieldstring">[docs]</a><span class="k">def</span> <span class="nf">fdtfile2fieldstring</span><span class="p">(</span><span class="n">fdtfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Make a string of field definitions separated by % (percent sign)</span>
+<span class="sd">    reading from a fdtfile or just take the string and bring into shape:</span>
+
+<span class="sd">        e.g.  1,AA,20,A,NC,NN%1,F4,4,F,NU,DT=E(UNIXTIME)</span>
+
+<span class="sd">    :param fdtfile:  fdtfile or field string</span>
+
+<span class="sd">    :return: tuple (number of fields, field string)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">fdtfile</span><span class="p">:</span>      <span class="c1"># fdt or file name</span>
+        <span class="n">fields</span><span class="o">=</span><span class="n">fdtfile</span>      <span class="c1"># fdt field defn contains commas</span>
+                            <span class="c1"># file name has no comma</span>
+        <span class="n">lines</span><span class="o">=</span><span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fields</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;%&#39;</span><span class="p">)]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">fdtfile</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">=</span><span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
+            <span class="c1"># drop CRLF, take string before &#39;;&#39;, cut off trailing blanks</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">())</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">fields</span><span class="o">=</span><span class="s1">&#39;%&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">numfields</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">numfields</span><span class="p">,</span><span class="n">fields</span></div>
+
+<span class="c1">#  Copyright 2004-ThisYear Software AG</span>
+<span class="c1">#</span>
+<span class="c1">#  Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1">#  you may not use this file except in compliance with the License.</span>
+<span class="c1">#  You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#      http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1">#  Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1">#  distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1">#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1">#  See the License for the specific language governing permissions and</span>
+<span class="c1">#  limitations under the License.</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2004-2019, software AG
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
