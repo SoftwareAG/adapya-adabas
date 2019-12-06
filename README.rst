@@ -22,10 +22,10 @@ Installation
 Links
 ~~~~~
 
+- Details of adapya-adabas: https://softwareag.github.io/adapya-adabas/index.html
 - Adabas at Software AG: https://www.softwareag.com
 - Adabas forum: http://tech.forums.softwareag.com/techjforum/forums/show/171.page
 - Adabas documentation: http://techcommunity.softwareag.com
-
 
 
 License
