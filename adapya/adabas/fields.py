@@ -851,7 +851,7 @@ def genfdt(fbuf,fields):
 
     :returns: size of FDT in buffer
     """
-    #o no support of special DE yet which might need se1.0.4 FDEs
+    #o no support of special DE yet which might need se1.3.0 FDEs
     #o no support of LF/X structure yet, hence no V82 features (datetime, system fields, deleted fields,DE)
 
     import struct,conv
@@ -966,7 +966,7 @@ def fdtfile2fieldstring(fdtfile):
 
     return numfields,fields
 
-#  Copyright 2004-2019 Software AG
+#  Copyright 2004-2023 Software AG
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.

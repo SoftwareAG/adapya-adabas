@@ -2,7 +2,7 @@
 adapya-adabas - Adabas Api for Python
 =====================================
 
-**adapya-adabas 1.0.4**
+**adapya-adabas 1.3.0**
 
 .. toctree::
 

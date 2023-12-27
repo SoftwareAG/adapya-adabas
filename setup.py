@@ -19,20 +19,20 @@ extra = {}
 #   extra['install_requires'] = ['uuid']
 
 install_requires = [
-    'adapya-base>=1.0.0',
+    'adapya-base>=1.3.0',
 ]
 
 README = open(os.path.join(os.path.dirname(__file__), 'README.rst')).read()
 
 setup(  name='adapya-adabas',
-    version='1.0.4',
+    version='1.3.0',
     author='mmueller',
     author_email='mm@softwareag.com',
     description='adapya-adabas - Software AG Adabas Database API for Python',
     license='Apache License 2.0',
-    url='http://tech.forums.softwareag.com/viewforum.php?f=171&C=11',
+    url='https://github.com/SoftwareAG/adapya-adabas',
     classifiers = [
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: Apache Software License',
          'Intended Audience :: Developers',
          'Natural Language :: English',
@@ -41,14 +41,18 @@ setup(  name='adapya-adabas',
          'Operating System :: POSIX :: HP-UX',
          'Operating System :: POSIX :: SunOS/Solaris',
          'Operating System :: POSIX :: Linux',
-         'Operating System :: IBM :: z/OS',
+         'Operating System :: POSIX :: Other',
          'Programming Language :: Python',
          'Programming Language :: Python :: 2.7',
          'Programming Language :: Python :: 3.5',
          'Programming Language :: Python :: 3.6',
          'Programming Language :: Python :: 3.7',
+         'Programming Language :: Python :: 3.8',
+         'Programming Language :: Python :: 3.9',
+         'Programming Language :: Python :: 3.10',
+         'Programming Language :: Python :: 3.11',
          'Topic :: Database',
-         'Topic :: Devops',
+         'Topic :: Software Development',
          ],
     keywords='softwareag adabas database',
     long_description=README,

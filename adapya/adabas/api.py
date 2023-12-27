@@ -9,11 +9,12 @@ the Adabas API.
 """
 from __future__ import print_function          # PY3
 
-__date__='$Date: 2019-11-21 15:21:10 +0100 (Thu, 21 Nov 2019) $'
-__revision__='$Rev: 949 $'
+__date__='$Date: 2023-12-01 00:54:33 +0100 (Fri, 01 Dec 2023) $'
+__revision__='$Rev: 1072 $'
 
 import getpass # for getuser()
 import os      # for getpid()
+import platform # cinfo uses platform.uname()
 import socket  # for gethostname()
 import string
 import struct
@@ -29,8 +30,8 @@ from adapya.base.defs import LOGCMD,LOGBEFORE,LOGCB,LOGFB,LOGRB,LOGSB,LOGVB
 from adapya.base.defs import LOGIB,LOGMB,LOGPB,LOGUB,LOGRSP,LOGBUF,LOGSP
 from adapya.base.conv import str2ebc
 from adapya.base.datamap import Datamap, Uint1, Uint2, Uint4, Uint8, String, \
-    Char, Int2, Int4, Bytes, T_STCK, T_GMT, T_HEX, T_NWBO, T_EBCDIC, \
-    fpack, NATIVEBO, NETWORKBO
+    Char, Int2, Int4, Bytes, T_NONE, T_STCK, T_GMT, T_HEX, T_NWBO, T_EBCDIC, \
+    T_VAR1, fpack, NATIVEBO, NETWORKBO
 from adapya.base.dump import dump
 from . import adaerror
 
@@ -44,7 +45,9 @@ except NameError:
 next = advance_iterator
 
 if sys.platform in ('win32','cli'): # CPython or IronPython
-    adalname = 'adalnkx'
+    import ctypes.util
+    adalname = ctypes.util.find_library('adalnkx') # get full path of adalnkxsa
+    # print('adalnkx=%r' % adalname)
 else:
     adalname = 'libadalnkx.so'
 
@@ -84,6 +87,22 @@ else:   # little
     nativeByteOrder=LOBF
     UNICODE_INTERNAL='utf_16_le'
 
+
+def getip(family=socket.AF_INET,host='10.255.255.255'):
+    """Determine own IP address"""
+    s = socket.socket(family, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect((host, 1))
+        IP = s.getsockname()[0] # leave off port number
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
+
+debug = 0
 
 # Adabas file access modes
 ACC=0
@@ -334,6 +353,41 @@ class Abdx(Datamap):
         else:
             Datamap.__init__(self, 'Abdx', *abdx32_fields, **kw)
 
+class ClientInfoLuw(Datamap):
+    def __init__(self, **kw):
+        Datamap.__init__(self,'clientInfoLuw',
+        String('eye',4),        # 'REVD'
+        String('ver',2),        # version
+        Bytes( 'reserved1',2,opt=T_NONE),
+        String('appl',8),       # application name
+        String('prog',8),       # program name
+        String('uid',8),        # userid
+        String('stmt',4),       # statement number
+        Uint4( 'level'),        # call level of program
+        Uint8( 'callcnt'),      # number of Adabas calls since I/O
+        Uint8( 'execcnt'),      # number of times object executed
+        String('lib',8),        # library curent object
+        String('rpcclid',8),    # RPC client id
+        String('rpcid',16),     # RPC id
+        String('rpcconvid',16), # RPC conversation id
+        String('secgroup',8),   # Security group
+
+        String('eye2',4),       # 'AUDL'
+        String('ver2',2),       # version field
+        String('date',8),       # date YYYYMMDD
+        String('time',6),       # time HHMMSS
+        String( 'varspace',512,opt=T_NONE),  # space for variable fields
+
+        String('user_name',0,opt=T_VAR1,repos=-128),
+        String('program_name',0,opt=T_VAR1),
+        String('machine_name',0,opt=T_VAR1),
+        String('operating_system_name',0,opt=T_VAR1),
+        String('operating_system_version',0,opt=T_VAR1),
+        String('hardware_name',0,opt=T_VAR1),
+        String('host_name',0,opt=T_VAR1),
+        String('tcpip_address',0,opt=T_VAR1),
+        **kw)
+
 ADAID_SL2 = 2   # adaid structure level w/o timestamp
 ADAID_SL3 = 3   # adaid structure level with timestamp
 ADAIDL    = 32  # size of adaid structure changed from 24, sl3 fits all
@@ -359,14 +413,29 @@ class Adasafinfo(Datamap):
 ADASAFINFOL=24 # 8+2*100  # 24
 ADASAFX = 0xd8
 
+if 0: # need to distinguish 32 or 64 bit
+  class Adaeax(Datamap):
+    def __init__(self, **kw):
+        Datamap.__init__(self, 'Adaeax',
+            Uint1(  'type'),
+            Uint1(  'level'),
+            Uint1(  'reserved1',opt=T_NONE),
+            Uint1(  'rdaarch'),
+            Uint4(  'flags'),
+            Uint8( 'timeout'),           # user level timeout (msec) ?  CE_UPLONG
+            # adaid comes here 32bytes
+            Uint8(  'eaxuservalue'),     # 64 bit addresses
+            Uint8(  'eaxcallbackreply'), # 64 bit addresses
+            **kw)
+
 
 class Mcbuh(Datamap):
     """ Multicall Buffer Header with offsets to global or array of elements
     """
     def __init__(self, buffer=None, offset=0):
         Datamap.__init__(self, 'MulticallBufferHeader',
-            Int2('goff'),   # offset of global area
-            Int2('moff'),   # offset of multiple areas in one buffer
+            Uint2('goff'),   # offset of global area
+            Uint2('moff'),   # offset of multiple areas in one buffer
             buffer=buffer, offset=offset)
         if buffer:     # reset fields if underlying buffer exists
             self.goff = self.moff = 0
@@ -386,16 +455,16 @@ class Mcstoff(Datamap):
 class Mfhdr(Datamap):
     def __init__(self, buffer=None, offset=0):
         Datamap.__init__(self, 'MultifetchHeader',
-            Int4('elecount'),
+            Uint4('elecount'),
             buffer=buffer, offset=offset)
 
 class Mfele(Datamap):
     def __init__(self, buffer=None, offset=0):
         Datamap.__init__(self, 'MultifetchElement',
-            Int4('reclen'),
-            Int4('rsp'),
-            Int4('isn'), # PE Index for L9
-            Int4('isq'), # Number of index values for L9
+            Uint4('reclen'),
+            Uint4('rsp'),
+            Uint4('isn'), # PE Index for L9
+            Uint4('isq'), # Number of index values for L9
             buffer=buffer, offset=offset)
 
 # Adabas open command architecture bits - different from Network architecture bits!!!
@@ -516,10 +585,12 @@ def setuidpw(dbid, userid, password, encrypter=None):
     return i
 
 def s1(s, byteorder='@'):
-    """return string s after 1 byte inclusive length
+    """return string s converted to bytes after 1 byte inclusive length
 
-    :param s: input string
-    :param byteorder: byteorder for input unicode string may be '<' little or '>' big endian
+    :param s: input string or (bytes,bytearray)
+    :param byteorder: byteorder for input unicode string may be '<' little or '>' big endian,
+                default is unicode internal
+
     """
     if byteorder in '>!':
         enco = 'UTF_16BE'
@@ -654,7 +725,7 @@ class Adabas(object):
         else:
             raise ProgrammingError("Invalid Adabas call buffer type %s"%type,self)
 
-    def __init__(self, fbl=0, rbl=0, sbl=0, vbl=0, ibl=0, pmutex=None,
+    def __init__(self, fbl=0, rbl=0, sbl=0, vbl=0, ibl=0, pmutex=None, noexceptions=0,
                  thread=0, multifetch=0, archit=None, password='', cipher=''):
         global totalCalls
         gg = globals()
@@ -668,6 +739,7 @@ class Adabas(object):
         self.cidseq = 0              # automatic cid count (should be user related)
         self.cipher = ''             # cipher code
         self.expected_responses = [] # list of response/subcode tuples consumed on each call()
+        self.noexceptions = noexceptions # do no fire exceptions after Adabas call with response code
         self.updates = 0             # number of updates in transaction (store,delete,update)
         self.rdaarch = archit        # architecture of adabas buffers
         self.bo = NATIVEBO
@@ -768,6 +840,7 @@ class Adabas(object):
         i = adalink.adabas(self.acb, self.fb,self.rb,self.sb,self.vb,self.ib)
         totalCalls+=1
 
+
         if i != 0 and self.cb.rsp==0:
             raise InterfaceError('Adabas call interface returned: %d' % i,
                                  self)
@@ -791,6 +864,9 @@ class Adabas(object):
                (self.cb.rsp not in (0,2,3)) and \
                not (self.cb.rsp == 64 and self.cb.cmd == 'CL')):
             self.logapa('After Adabas call')
+
+        if self.noexceptions:    # do not check response codes
+            return
 
         if self.expected_responses:
             x = self.expected_responses.pop(0)
@@ -829,7 +905,7 @@ class Adabas(object):
             raise DatabaseError(errtext,self)
 
 
-    def logapa(self,loghdr,before=0):
+    def logapa(self,loghdr='',before=0):
         """ Logging of Adabas call parameters for Acb
 
             Options set in logopt determine which buffer to log
@@ -841,7 +917,8 @@ class Adabas(object):
             if defs.logopt&(LOGCB) or (rsp and not before):
                 adalog.debug(loghdr)
                 self.showCB(before=before)
-                dump(self.acb, 'Control Block '+repr(self.acb), 'CB',log=adalog.debug)
+                hdr = 'Control Block '+repr(self.acb) if debug else 'Control Block'
+                dump(self.acb, hdr, 'CB',log=adalog.debug)
 
             if defs.logopt & ~(LOGCB|LOGBEFORE): # any buffer logging at all?
                 lopt = defs.logopt & ~(LOGCB|LOGBEFORE|LOGBUF)
@@ -855,15 +932,18 @@ class Adabas(object):
                         # include buffers sent to Adabas (were not logged before)
 
                 if (lopt & LOGFB) and self.cb.fbl:
-                    dump(self.fb, 'Format Buffer '+repr(self.fb), 'FB',log=adalog.debug)
+                    hdr = 'Format Buffer '+repr(self.fb) if debug else 'Format Buffer'
+                    dump(self.fb, hdr, 'FB',log=adalog.debug)
                 if (lopt & LOGRB) and self.cb.rbl:
-                    dump(self.rb, 'Record Buffer '+repr(self.rb), 'RB',log=adalog.debug)
+                    hdr = 'Record Buffer '+repr(self.rb) if debug else 'Record Buffer'
+                    dump(self.rb, hdr, 'RB',log=adalog.debug)
                 if (lopt & LOGSB) and self.cb.sbl:
                     dump(self.sb, 'Search Buffer', 'SB',log=adalog.debug)
                 if (lopt & LOGVB) and self.cb.vbl:
                     dump(self.vb, 'Value Buffer', 'VB',log=adalog.debug)
                 if (lopt & LOGIB) and self.cb.ibl != 0:
                     dump(self.ib, 'ISN Buffer', 'IB',log=adalog.debug)
+
 
     def multifetch(self, dmap):
         """ Generator function
@@ -922,8 +1002,13 @@ class Adabas(object):
 
             self.mfhdr.elecount=0
 
-            if self.cb.op2 == 'I':          # Read in ISN sequence
-                self.cb.isn=isn+1           # next ISN
+            if self.cb.op2 in ('I','K'):    # Read in ISN sequence
+                self.cb.isn = isn+1         # next ISN
+            elif self.cb.op2 == 'J':        # Read descending in ISN sequence
+                self.cb.isn = isn-1         # next ISN
+            elif self.cb.cmd in ('L2','L5'):
+                self.cb.isn = 0             # next ISN determined by nucleus
+
             isn=None
             self.cb.ad3=ad3                 # Restore any Additions3
             self.cb.ad4=ad4                 # Restore any Additions4
@@ -1067,7 +1152,7 @@ class Adabas(object):
           (repr(cb.ad3), repr(cb.ad4), repr(cb.ad5), cb.pdbid, cb.pnucid, self.adaid.pid))
 
 
-    def open( self, mode=None, tnaa=0, tt=0, etid='', arc=None, acode=0, wcode=0,
+    def open( self, mode=None, tna=0, tt=0, etid='', arc=None, acode=0, wcode=0,
               wcharset='', tz=''):
         """
         Open a user session with a database.
@@ -1089,7 +1174,7 @@ class Adabas(object):
             defines share mode of files, default None
             if mode is a string it may be a list of modes e.g. 'UPD=2,ACC=3'
 
-        :param tnaa:
+        :param tna:
             time of non-activity
 
         :param tt:
@@ -1106,7 +1191,7 @@ class Adabas(object):
         """
 
         self.cb.cmd='OP'
-        self.cb.isl=tnaa
+        self.cb.isl=tna
         self.cb.isq=tt
         self.cb.op1=' '         # option R restrict files
         if self.cb.op2 != 'E':
@@ -1430,7 +1515,7 @@ class Adabas(object):
         if descriptor != '':
             self.cb.ad1=descriptor[:2]+' '*6
 
-        if descending==1:
+        if descending:
             self.cb.op2='D'   # descending
         else:
             self.cb.op2=' '   # ascending 'A'
@@ -1518,10 +1603,6 @@ class Adabas(object):
                     break # returns with StopIteration
 
 
-
-
-
-
     def hold(self, isn=0, wait=0):
         """
         Put record in hold with ISN=isn
@@ -1583,11 +1664,17 @@ class Adabas(object):
         """
         print(self.getopsys())
 
-    def rc(self,cid=None):
+    def rc(self,cid=None,op1='',op2=''):
         """Release Command ID as specified in Adabas Control Block CID field
 
         :param cid: optional parameter specifies the command id
             to be used for the RC
+
+        :param op1: optional parameter specifies the value for command option 1
+            to be used for the RC (default = ' ')
+
+        :param op2: optional parameter specifies the value for command option 2
+            to be used for the RC (default = ' ')
 
         :var self.cb.dbid: must be set before calling this function
 
@@ -1597,8 +1684,8 @@ class Adabas(object):
             self.cb.cid=cid
 
         self.cb.cmd='RC'
-        self.cb.op1=' '
-        self.cb.op2=' '
+        self.cb.op1=op1
+        self.cb.op2=op2
         self.call()
 
     def readByIsn(self, getnext=0):
@@ -1643,7 +1730,7 @@ class Adabas(object):
 
         """
         #o check for dmap != None ???
-        if dmap and not dmap.buffer:
+        if dmap: # and not dmap.buffer:
             dmap.buffer = self.rb
             dmap.offset = 0
 
@@ -1689,12 +1776,12 @@ class Adabas(object):
                     self.call()
                     yield self.cb.isn, dmap # emp
                     self.cb.isn+=1   # next ISN
-                    self.cb.ad3=ad3  # restore for next call
-                    self.cb.ad4=ad4
+                    # self.cb.ad3=ad3
+                    self.cb.ad4=ad4  # restore for next call
                 except DataEnd:
-                    print('DataEnd -> StopIteration')
-                    raise StopIteration
-                    # break
+                    # print('DataEnd -> StopIteration')
+                    # raise StopIteration
+                    break
 
     def readphys(self, hold=0, wait=0, dmap=None):
         """
@@ -1819,13 +1906,13 @@ class Adabas(object):
             return self.cb.isn, 1 # no rbl with ACBX # self.cb.rbl  # rbl is > 0
 
 
-    def read(self,seq='',descending=0,hold=0,wait=0,dmap=None,startisn=0):
+    def read(self,seq='',descending=0,hold=0,wait=0,dmap=None,startisn=0,toisn=0):
         """
         Read in sequence generator
 
         :param seq: read sequence
             * physical (default) or
-            * by descriptor (e.g. seq='AA'
+            * by descriptor (e.g. seq='AA', search and value buffer must be set)
             * by ISN (seq='ISN' or seq='I')
             * get next (seq='NEXT' or seq='N')
         :param descending: read descending if true
@@ -1856,6 +1943,7 @@ class Adabas(object):
         12345699 Peter     O     Smith
 
         """
+        # toisn = 0 # not supported yet in Adabas
         if dmap and not dmap.buffer:
             dmap.buffer = self.rb
             dmap.offset = 0
@@ -1866,35 +1954,55 @@ class Adabas(object):
         self.cb.isn = startisn
         self.cb.op1=' '
 
-        if hold:
-            if len(seq)==2:
-                self.cb.cmd='L6'
-            elif seq.startswith('I'):
+        if seq in ('I', 'ISN'):
+            if hold:
                 self.cb.cmd='L4'
-                self.cb.op2='I'
-            elif seq.startswith('N'):
-                self.cb.cmd='L4'
-                self.cb.op2='N'
-            else: # physical
-                self.cb.cmd='L5'
-        else:
-            if len(seq)==2:
-                self.cb.cmd='L3'
-            elif seq.startswith('I'):
+            else:
                 self.cb.cmd='L1'
-                self.cb.op2='I'
-            elif seq.startswith('N'):
-                self.cb.cmd='L1'
-                self.cb.op2='N'
-            else: # physical
-                self.cb.cmd='L2'
 
-        if len(seq) == 2:
-            self.cb.ad1=seq[:2]+' '*6
-            if descending==1:
+            if descending:
+                self.cb.op2='J'
+                if toisn:
+                    if 0: # toisn > startisn:
+                        raise ProgrammingError('Read by ISN descending and startisn=%d < toisn=%d',
+                                (startisn, toisn))
+                    self.cb.isq=toisn
+            else:
+                if toisn:
+                    if 0: # toisn < startisn:
+                        raise ProgrammingError('Read by ISN and startisn=%d > toisn=%d',
+                                (startisn, toisn))
+                    self.cb.isq=toisn
+                    self.cb.op2='K'
+                else:
+                    self.cb.op2='I'
+
+        elif seq in ('N', 'NEXT'):
+            if hold:
+                self.cb.cmd='L4'
+            else:
+                self.cb.cmd='L1'
+            self.cb.op2='N'
+
+        elif seq:   # some search criteria
+            if hold:
+                self.cb.cmd='L6'
+            else:
+                self.cb.cmd='L3'
+
+            if len(seq) >= 2:
+                self.cb.ad1=seq[:2]+' '*6   # set descriptor name
+
+            if descending:
                 self.cb.op2='D'   # descending
             else:
-                self.cb.op2='A'   # ascending
+                self.cb.op2='V'   # ascending also 'A'
+
+        else: # physical
+            if hold:
+                self.cb.cmd='L5'
+            else:
+                self.cb.cmd='L2'
 
         if self.mfc>1 and dmap != None:   # multifetch
             if self.mfgen==None:             # first call
@@ -1932,8 +2040,14 @@ class Adabas(object):
                     # self.cb.ad3=ad3  # restore for next call
                     self.cb.ad4=ad4
 
-                    if self.cb.op2=='I':
+                    if self.cb.op2 in ('I','K'):
                         self.cb.isn+=1      # step up ISN for next call
+                    elif self.cb.op2=='J':
+                        isn = self.cb.isn
+                        self.cb.isn = 0 if isn < 1 else isn-1 # next lower ISN for next call
+                    elif not seq: # physical read
+                        self.cb.isn = 0     # reset ISN, next ISN found by nucleus
+
 
                 except DataEnd:
                     break # returns with StopIteration
@@ -2046,14 +2160,15 @@ class Adabas(object):
                 crit to GE, GT, LE, LT or NE.
 
         :parm ffrm:     one of Adabas formats gets inserted to search buffer
-                        if numeric format (A,P,F,B or G): the input integer value
+                        if numeric format (U,P,F,B or G): the input integer value
                         is converted to appropriate Adabas value in value buffer
         :param first:   if true it is the first search criterion in the buffers.
                         Reposition search and value buffer to start positions
         :param last:    if true it is the last search criterion in the buffers
                         Terminate search buffer
 
-        Note: Don't forget to terminate search buffer with '.'
+        Note: Don't forget to terminate search buffer with '.' or set the
+              parameter last=True
         """
         if first:           # first search criterion: reset search and value buffer position
             self.sb.pos=0
@@ -2067,7 +2182,7 @@ class Adabas(object):
             i = int(value)
             self.vb.write(fpack(i,ffrm,fieldlen))  # binary data
             self.sb.write_text('%s,%d,%s'%(fieldname,fieldlen,ffrm))
-        elif type(value)==type(u''):   # unicode (UTF-16)
+        elif ffrm == 'W' and type(value)==type(u''):   # unicode (UTF-16)
             #todo crit parameter eval
             if len(value)>0 and value[-1]=='*': # with wild card
                 ln=len(value)-1
@@ -2081,9 +2196,9 @@ class Adabas(object):
                 uu=value # +u' '
                 ut=value+u'\uFA29'  # highest 2 byte value in ICU collation
                                     # FFFF is the highest UTF-16 value (w/o surrogates)
-                # dump(s1(uu.encode('UNICODE_INTERNAL'))+s1(ut.encode('UNICODE_INTERNAL')))
-                self.vb.write(s1(uu.encode('UNICODE_INTERNAL'))
-                            +s1(ut.encode('UNICODE_INTERNAL'))) # utf_16 in native byteorder
+                # dump(s1(uu.encode(UNICODE_INTERNAL))+s1(ut.encode(UNICODE_INTERNAL)))
+                self.vb.write(s1(uu.encode(UNICODE_INTERNAL))
+                            +s1(ut.encode(UNICODE_INTERNAL))) # utf_16 in native byteorder
                 self.sb.write_text(fieldname+',0,S,'+fieldname+',0')
             else:
                     ln=len(value)
@@ -2091,11 +2206,11 @@ class Adabas(object):
                         ln=fieldlen//2
                     uu=value+(fieldlen//2-ln)*u' '
                     # print( ln,value,fieldlen,fieldname)
-                    # dump(uu.encode('UNICODE_INTERNAL') )
-                    self.vb.write(uu.encode('UNICODE_INTERNAL') )
+                    # dump(uu.encode(UNICODE_INTERNAL) )
+                    self.vb.write(uu.encode(UNICODE_INTERNAL) )
                     self.sb.write_text(fieldname)
         else:   # other encoding
-            if len(value)>0 and value[-1]==b'*': # with wild card
+            if len(value)>0 and value[-1] in (b'*','*'): # with wild card
                 ln=len(value)-1
                 if ln>fieldlen-1:
                     ln=fieldlen-1     # limit to standard field length -1
@@ -2116,7 +2231,8 @@ class Adabas(object):
                 ln=len(value)
                 if ln>fieldlen:
                     ln=fieldlen
-                self.vb.write_text(value[:ln]+(fieldlen-ln)*' ')
+                self.vb.write(value[:ln])
+                self.vb.write_text((fieldlen-ln)*' ')
                 self.sb.write_text(fieldname + ',%d' % fieldlen)
         if crit and crit != 'EQ': # omit EQ (=default)
             self.sb.write_text(','+crit)
@@ -2236,9 +2352,10 @@ class Adabas(object):
 class Adabasx(Adabas):
     "Set of Adabas classes to issue Adabas calls and write/read related buffers"
 
-    def __init__(self, fbl=0, rbl=0, sbl=0, vbl=0, ibl=0, mbl=0, password='',
-                 pbl=0, pmutex=None, ubl=0, thread=0, multifetch=0,
-                archit=None, cipher=''):
+    def __init__(self, fbl=0, rbl=0, sbl=0, vbl=0, ibl=0, mbl=0,
+                 password='', pbl=0, pmutex=None, ubl=0, thread=0,
+                 multifetch=0, archit=None, noexceptions=0,
+                 cipher='', clientinfo=True ):
         global totalCalls
         gg = globals()
         if 'totalCalls' not in gg: totalCalls=0
@@ -2248,7 +2365,9 @@ class Adabasx(Adabas):
         self.cidseq=0               # automatic cid count (should be user related
                                     # OR use cidn=-1 for automatic assignment in Adabas as in read()
         self.cipher=cipher          # cipher code
+        self.clientinfo = clientinfo # Add
         self.expected_responses=[]  # list of response/subcode tuples consumed on each call()
+        self.noexceptions = noexceptions # do no fire exceptions after Adabas call with response code
         self.updates = 0            # reset number of updates (should be user session related)
 
         self.pmutex = pmutex if pmutex else defs.dummymutex
@@ -2258,6 +2377,7 @@ class Adabasx(Adabas):
         self.encoding = 'latin1'     # default buffer encoding unless architecture is EBCDIC
         self.ebcdic = 0
         self.bo = NATIVEBO
+        self.ecall = None
 
         if archit and (archit & RDAAEBC) and not (archit & RDAABSW):
             # mainframe native calls
@@ -2270,8 +2390,8 @@ class Adabasx(Adabas):
             self.encoding = 'cp037' # EBCDIC US (Latin1 characterset)
             self.rdaarch = RDAAEBC
 
-        self.acbx=Abuf(ACBXLEN)
-        self.cb=Acbx(buffer=self.acbx, ebcdic=self.ebcdic, byteOrder=self.bo)
+        self.acb = Abuf(ACBXLEN)
+        self.cb = Acbx(buffer=self.acb, ebcdic=self.ebcdic, byteOrder=self.bo)
 
         self.abds=[] # empty list of ABDs
         self.bufs=[] # corresponding list of buffers
@@ -2365,16 +2485,27 @@ class Adabasx(Adabas):
             self.abds.append(self.mbabd)
             self.bufs.append(self.mb)
 
+        if clientinfo:  # create performance buffer for client info
+            self.cinfo = ClientInfoLuw(ebcdic=self.ebcdic, byteOrder=self.bo)
+            cilen      = self.cinfo.dmlen
+            self.pb    = Abuf(cilen)
+            self.cinfo.buffer = self.pb
+            self.setcinfo(self.cinfo)
 
-            #self.ib=Abuf(ABDXL+ibl)    ## ABC+ib in one buffer not used
-            #id=Acbx(buffer=self.ib)
-            #id.len  = ABDXL
-            #id.ver  = ABDXV2
-            #id.id   = ABDXI   # ISN buffer type
-            #id.loc  = ABDXSTD # direct
-            #id.size = ibl
-            #self.abds.append(ctypes.cast(self.ib, ctypes.c_char_p))
-            #self.bufs.append(self.ib)
+            self.pbabd = Abuf(ABDXL)
+            self.pabd  = Abdx(buffer=self.pbabd, ebcdic=self.ebcdic, byteOrder=self.bo)
+            pa = self.pabd
+            pa.len     = ABDXL
+            pa.ver     = ABDXV2
+            pa.id      = ABDXP   # Performace buffer type
+            pa.loc     = ABDXIND # indirect
+            pa.size    = cilen
+            pa.send    = cilen
+            pa.addr    = ctypes.addressof(self.pb)
+            self.abds.append(self.pbabd)
+            self.bufs.append(self.pb)
+        else:
+            self.cinfo = None
 
         # Create ABD array for later Adabasx call
         # This array may be zero in length if no ABDs exist
@@ -2510,13 +2641,137 @@ class Adabasx(Adabas):
         if self.thread:
             i = adalink.lnk_set_adabas_id(self.aidb)
 
-        if defs.logopt&LOGBEFORE:
-            with self.pmutex:
-                adalog.debug('Before Adabasx call')
+        if defs.logopt & LOGBEFORE:
+            self.logapa('Before Adabas call',before=1)
 
-                if defs.logopt&(LOGCB):
-                    self.showCB(before=1)
-                    dump(self.acbx, 'Control Block Extended '+repr(self.acbx), 'CB',log=adalog.debug)
+        totalCalls+=1
+
+        if self.cinfo:
+            self.cinfo.callcnt = totalCalls
+
+        # issue call
+        i = adalink.adabasx(self.acb, self.abdalen, self.abda)
+
+
+        if i != 0 and self.cb.rsp==0:
+            raise InterfaceError('Adabas call interface returned: %d' % i,
+                self)
+
+        if defs.logopt&LOGCMD or \
+           (defs.logopt&LOGRSP and \
+               (self.cb.rsp not in (0,2,3)) and \
+               not (self.cb.rsp == 64 and self.cb.cmd == 'CL')):
+            self.logapa('After Adabas call')
+
+        if self.noexceptions:    # do not check response codes
+            return
+
+        if self.expected_responses:
+            x = self.expected_responses.pop(0)
+            if isinstance(x, tuple):
+                xrsp,xsub = x
+            else:
+                xrsp, xsub = x, None  # just a response code (with no subcode specified)
+
+            if xsub == None:    # only response code specified
+                if defs.logopt&LOGCMD:
+                    with self.pmutex:
+                        adalog.debug('Checking for expected response %d'%xrsp)
+                assert xrsp == self.cb.rsp, \
+                    'Unexpected response %d, expected response %d'%(
+                        self.cb.rsp, xrsp)
+            else:
+                if defs.logopt&LOGCMD:
+                    with self.pmutex:
+                       adalog.debug('Checking for expected response %d/%d'%(xrsp,xsub))
+                assert xrsp == self.cb.rsp and xsub == self.cb.errc, \
+                    'Unexpected response %d/subcode %d, expected response %d/%d'%(
+                        self.cb.rsp, self.cb.errc, xrsp, xsub)
+            return
+
+
+        if self.cb.rsp > 0:
+            if self.cb.rsp == 2:  # ignore DE truncation warning
+                self.cb.rsp = 0
+                pass
+            elif self.cb.rsp == 3:
+                raise DataEnd("End of Data",self)
+            else:
+                raise DatabaseError(
+                    adaerror.rsptext(self.cb.rsp,
+                        struct.unpack('=H',(self.cb.errbb+b'\x00\x00')[:2])[0],self.cb.errc,
+                        cmd=self.cb.cmd, subcmd1=self.cb.op1, subcmd2=self.cb.op2),
+                    self)
+
+
+    def setcinfo(self,ci):
+        import os.path
+        import datetime
+        dt = datetime.datetime.now()
+        # uname() returns named tuple from Python 3.3
+        # system, node, release, version, machine, processor
+        if sys.hexversion < 0x03030100:
+            class Uname(object):
+                pass
+            uname = Uname()
+            uname.system, uname.node, uname.release,uname.version,\
+                uname.machine, uname.processor = platform.uname()
+        else:
+            uname = platform.uname()
+        ci.eye  = 'REVD'
+        ci.ver  = '00'
+        ci.ver  = '01'
+        ci.appl = ''
+        ci.prog = ''
+        ci.uid  = ''
+        ci.stmt = ''
+        ci.level   = 0
+        ci.callcnt = 0
+        ci.execcnt = 0
+        ci.lib     = ''
+        ci.rpcclid = ''
+        ci.rpcid   = ''
+        ci.rpcconvid = ''
+        ci.secgroup = ''
+        ci.eye2  = 'AUDL'
+        ci.ver2  = '01'
+        ci.date  = dt.strftime('%Y%m%d')  # 'YYYYMMDD'
+        ci.time  = dt.strftime('%H%M%S')  # 'hhmmss'
+        # ci.varspace = s1(username)+s1(programname)+s1(machinename)+s1(opsys)+
+        #                s1(opsysver)+s1(hwname)+s1(hostname)+s1(tcpipaddr)
+        varinfo = s1(getpass.getuser().encode(self.encoding))+ \
+            s1(os.path.basename(sys.executable).encode(self.encoding))+\
+            s1(uname.node.encode(self.encoding))+\
+            s1(uname.system.encode(self.encoding))+\
+            s1(uname.version.encode(self.encoding))+\
+            s1(uname.processor.encode(self.encoding))+\
+            s1(socket.gethostname().encode(self.encoding))+\
+            s1(getip().encode(self.encoding))
+
+            # print(len(varinfo), varinfo)
+            # dump(varinfo)
+
+        ci.varspace = varinfo
+
+
+    def logapa(self,loghdr='',before=0):
+        """ Logging of Adabas call parameters for Acb
+
+            Options set in logopt determine which buffer to log
+
+            :param before: set to true if logging before the adabas call
+        """
+        if before and defs.logopt&LOGBEFORE:
+            with self.pmutex:
+                if loghdr:
+                    adalog.debug('\n'+loghdr)
+                else:
+                    adalog.debug('Before Adabasx call')
+                self.showCB()
+
+                if defs.logopt & LOGCB:
+                    hdr = 'Control Block Extended '+repr(self.acb) if debug else 'Control Block Extended'
+                    dump(self.acb, hdr, 'CB',log=adalog.debug)
 
                 if defs.logopt & ~(LOGCB|LOGBEFORE): # any buffer logging at all?
                     jf=jr=jm=js=jv=ji=jp=ju=0
@@ -2532,72 +2787,68 @@ class Adabasx(Adabas):
 
                         if lopt&LOGFB and abd.id=='F':
                             jf+=1
-                            dump(abdb, 'FB ABD'+repr(abdb), 'FD%d'%jf,log=adalog.debug)
+                            hdr = 'FB ABD'+repr(abdb) if debug else 'FB%d ABD'%jf
+                            dump(abdb, hdr, 'FD%d'%jf,log=adalog.debug)
                             dump(self.bufs[i], 'Format Buffer %d - %d/%d/%d - %08X' % (
                                 jf, abd.size, abd.send, abd.recv, abd.addr), 'FB%d'%jf,
                                 log=adalog.debug)
                         if lopt&LOGRB and abd.id=='R':
                             jr+=1
-                            dump(abdb, 'RB%d ABD'%jr+repr(abdb), 'RD%d'%jr,log=adalog.debug)
+                            hdr = 'RB%d ABD'%jr+repr(abdb) if debug else 'RB%d ABD'%jr
+                            dump(abdb, hdr, 'RD%d'%jr,log=adalog.debug)
                             dump(self.bufs[i], 'Record Buffer %d - %d/%d/%d - %08X' % (
                                 jr, abd.size, abd.send, abd.recv, abd.addr), 'RB%d'%jr,
                                 log=adalog.debug)
                         if lopt&LOGMB and abd.id=='M':
                             jm+=1
-                            dump(abdb, 'MB ABD'+repr(abdb), 'MD%d'%jm,log=adalog.debug)
+                            hdr = 'MB ABD'+repr(abdb) if debug else 'MB%1 ABD'%jm
+                            dump(abdb, hdr, 'MD%d'%jm,log=adalog.debug)
                             dump(self.bufs[i], 'Multifetch Buffer %d - %d/%d/%d - %08X' % (
                                 jm, abd.size, abd.send, abd.recv, abd.addr), 'MB%d'%jm,
                                 log=adalog.debug)
                         if lopt&LOGSB and abd.id=='S':
                             js+=1
-                            dump(abdb, 'SB ABD'+repr(abdb), 'SD%d'%js,log=adalog.debug)
+                            dump(abdb, 'SB%d ABD'%js, 'SD%d'%js,log=adalog.debug)
                             dump(self.bufs[i], 'Search Buffer %d - %d/%d/%d - %08X' % (
                                 js, abd.size, abd.send, abd.recv, abd.addr), 'SB%d'%js,
                                 log=adalog.debug)
                         if lopt&LOGVB and abd.id=='V':
                             jv+=1
-                            dump(abdb, 'VB ABD'+repr(abdb), 'VD%d'%jv,log=adalog.debug)
+                            dump(abdb, 'VB%d ABD'%jv, 'VD%d'%jv,log=adalog.debug)
                             dump(self.bufs[i], 'Value Buffer %d - %d/%d/%d - %08X' % (
                                 jv, abd.size, abd.send, abd.recv, abd.addr), 'VB%d'%jv
                                 ,log=adalog.debug)
                         if lopt&LOGIB and abd.id=='I':
                             ji+=1
-                            dump(abdb, 'IB ABD'+repr(abdb), 'ID%d'%ji,log=adalog.debug)
+                            dump(abdb, 'IB%d ABD'%ji, 'ID%d'%ji,log=adalog.debug)
                             dump(self.bufs[i], 'ISN Buffer %d - %d/%d/%d - %08X' % (
                                 ji, abd.size, abd.send, abd.recv, abd.addr), 'IB%d'%jf,
                                 log=adalog.debug)
                         if lopt&LOGPB and abd.id=='P':
                             jp+=1
-                            dump(abdb, 'PB ABD'+repr(abdb), 'PD%d'%jp,log=adalog.debug)
+                            dump(abdb, 'PB%d ABD'%jp, 'PD%d'%jp,log=adalog.debug)
                             dump(self.bufs[i], 'Performance Buffer %d - %d/%d/%d - %08X' % (
                                 jp, abd.size, abd.send, abd.recv, abd.addr), 'PB%d'%jp,
                                 log=adalog.debug)
                         if lopt&LOGUB and abd.id=='U':
                             ju+=1
-                            dump(abdb, 'UB ABD'+repr(abdb), 'UD%d'%ju,log=adalog.debug)
+                            dump(abdb, 'UB%d ABD'%ju, 'UD%d'%ju,log=adalog.debug)
                             dump(self.bufs[i], 'User Buffer %d - %d/%d/%d - %08X' % (
-                                ju, abd.size, abd.send, abd.recv, abd.addr), 'FB%d'%ju,
+                                ju, abd.size, abd.send, abd.recv, abd.addr), 'UB%d'%ju,
                                 log=adalog.debug)
 
-        # issue call
-        i = adalink.adabasx(self.acbx, self.abdalen, self.abda)
-
-        totalCalls+=1
-
-        if i != 0 and self.cb.rsp==0:
-            raise InterfaceError('Adabas call interface returned: %d' % i,
-                self)
-
-        if defs.logopt&LOGCMD or \
-           (defs.logopt&LOGRSP and \
-               (self.cb.rsp not in (0,2,3)) and \
+        elif defs.logopt&LOGCMD or \
+              (defs.logopt&LOGRSP and (self.cb.rsp not in (0,2,3)) and \
                not (self.cb.rsp == 64 and self.cb.cmd == 'CL')):
 
             with self.pmutex:
-                adalog.debug('After Adabasx call')
+                if loghdr:
+                    adalog.debug('\n'+loghdr)
+                else:
+                    adalog.debug('After Adabasx call')
                 self.showCB()
                 if defs.logopt & LOGCB:
-                    dump(self.acbx, 'Control Block Extended '+repr(self.acbx), 'CB',log=adalog.debug)
+                    dump(self.acb, 'Control Block Extended '+repr(self.acb), 'CB',log=adalog.debug)
 
                 if defs.logopt & ~(LOGCB|LOGBEFORE): # any buffer logging at all?
                     jf=jr=jm=js=jv=ji=jp=ju=0
@@ -2653,61 +2904,25 @@ class Adabasx(Adabas):
                                 ju, abd.size, abd.send, abd.recv, abd.addr), 'FB%d'%ju,
                                 log=adalog.debug)
 
-        if self.expected_responses:
-            x = self.expected_responses.pop(0)
-            if isinstance(x, tuple):
-                xrsp,xsub = x
-            else:
-                xrsp, xsub = x, None  # just a response code (with no subcode specified)
-
-            if xsub == None:    # only response code specified
-                if defs.logopt&LOGCMD:
-                    with self.pmutex:
-                        adalog.debug('Checking for expected response %d'%xrsp)
-                assert xrsp == self.cb.rsp, \
-                    'Unexpected response %d, expected response %d'%(
-                        self.cb.rsp, xrsp)
-            else:
-                if defs.logopt&LOGCMD:
-                    with self.pmutex:
-                       adalog.debug('Checking for expected response %d/%d'%(xrsp,xsub))
-                assert xrsp == self.cb.rsp and xsub == self.cb.errc, \
-                    'Unexpected response %d/subcode %d, expected response %d/%d'%(
-                        self.cb.rsp, self.cb.errc, xrsp, xsub)
-            return
-
-
-        if self.cb.rsp > 0:
-            if self.cb.rsp == 2:  # ignore DE truncation warning
-                self.cb.rsp = 0
-                pass
-            elif self.cb.rsp == 3:
-                raise DataEnd("End of Data",self)
-            else:
-                raise DatabaseError(
-                    adaerror.rsptext(self.cb.rsp,
-                        struct.unpack('=H',(self.cb.errbb+b'\x00\x00')[:2])[0],self.cb.errc,
-                        cmd=self.cb.cmd, subcmd1=self.cb.op1, subcmd2=self.cb.op2),
-                    self)
-
     def showCB(self, before=0):
         """Print Adabas control block interpreted
 
         :param before: if not zero show CB fields relevant for before
                        the adabas call (e.g. no response code, cmd time)
         """
-        cbx=self.cb
+        cb=self.cb # Acb(buffer=self.acbx)
         if before:
-            adalog.debug('cmd=%s op1-8=%s dbid=%d fnr=%d' % \
-                (cbx.cmd, repr(cbx.op1_8),  cbx.dbid, cbx.fnr))
+            adalog.debug('cmd=%s op1/2/3=%s/%s/%s ad1=%s dbid=%d fnr=%d' % \
+                (cb.cmd, repr(cb.op1), repr(cb.op2), repr(cb.op3), repr(cb.ad1), self.dbid, cb.fnr))
         else:
-            adalog.debug('cmd=%s op1-8=%s dbid=%d fnr=%d cmdt=%6.6f ms rsp=%d' % \
-                (cbx.cmd, repr(cbx.op1_8),  cbx.dbid, cbx.fnr, cbx.cmdt/4096000., cbx.rsp))
-        adalog.debug('cid=%s isn=%d isl=%d isq=%d' % (repr(cbx.cid), cbx.isn, cbx.isl, cbx.isq))
-        adalog.debug('ad1=%s ad3=%s\nad4=%s ad5=%s pid=%04X\n'  % \
-          (repr(cbx.ad1), repr(cbx.ad3), repr(cbx.ad4), repr(cbx.ad5), self.adaid.pid))
+            adalog.debug('cmd=%s op1/2/3=%s/%s/%s ad1=%s dbid=%d fnr=%d cmdt=%6.3f ms rsp=%d' % \
+                (cb.cmd, repr(cb.op1), repr(cb.op2), repr(cb.op3), repr(cb.ad1), cb.dbid,
+                    cb.fnr, cb.cmdt*16./1000, cb.rsp))
+        adalog.debug('cid=%d isn=%d isl=%d isq=%d' % (cb.cidn, cb.isn, cb.isl, cb.isq))
+        adalog.debug('ad3=%s, ad4=%s, ad5=%s, pdbid=%d, pnucid=%d, pid=%04X' % \
+          (repr(cb.ad3), repr(cb.ad4), repr(cb.ad5), cb.pdbid, cb.pnucid, self.adaid.pid))
 
-        if cbx.rsp!=0 and not before:
+        if cb.rsp!=0 and not before:
             respt = adaerror.rsptext(self.cb.rsp,
                 struct.unpack('=H',(self.cb.errbb+b'\x00\x00')[:2])[0],self.cb.errc,
                 cmd=self.cb.cmd, subcmd1=self.cb.op1, subcmd2=self.cb.op2)
@@ -2716,7 +2931,7 @@ class Adabasx(Adabas):
             #    repr(cbx.errb), cbx.errc, cbx.errd, cbx.errf, cbx.erra))
 
 
-    def open( self, mode=None, tnaa=0, tt=0, etid='', arc=None, acode=0, wcode=0,
+    def open( self, mode=None, tna=0, tt=0, etid='', arc=None, acode=0, wcode=0,
               wcharset='', tz=''):
         """
         Open a user session with a database.
@@ -2737,7 +2952,7 @@ class Adabasx(Adabas):
         :param etid: 8 bytes Adabas transaction user id
         :param mode: defines share mode of files, default None
             (in the future: list of sublist of mode, file elements)
-        :param tnaa: time of non-activity
+        :param tna: time of non-activity
         :param tt: transaction time
 
         :param tz:
@@ -2751,7 +2966,7 @@ class Adabasx(Adabas):
 
         """
         self.cb.cmd='OP'
-        self.cb.isl=tnaa
+        self.cb.isl=tna
         self.cb.isq=tt
         self.cb.op1=' '         # option R restrict files
         if self.cb.op2 != 'E':
@@ -3088,7 +3303,7 @@ def refreshfile(dbid, fnr):
     rf.cb.fnr=fnr
     rf.delete()   # isn=0 is refresh file
 
-#  Copyright 2004-2019 Software AG
+#  Copyright 2004-2023 Software AG
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.

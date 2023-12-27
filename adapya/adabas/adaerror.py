@@ -6,10 +6,10 @@ This module contains the dictionary and the resptext() function to get
 the corresponding error message for an Adabas response code.
 
 """
-__date__='$Date:: 2018-05-07 15:13:26 +0200 (Mon, 07 May 2018) $'
-__revision__='#  $Rev: 818 $'
+__date__='$Date:: 2023-12-01 00:54:33 +0100 (Fri, 01 Dec 2023) $'
+__revision__='#  $Rev: 1072 $'
 
-from adapya.base.conv import str2asc  # convert string ebcdic to ascii
+from adapya.base.conv import str2asc  # convert [byte]string ebcdic to ascii
 
 rsp9s={    #subcode of RSP9
     1: "User was backed out because the hold queue was full" ,
@@ -19,7 +19,7 @@ rsp9s={    #subcode of RSP9
        "security violation response code has been returned for user in previous session, or "
        "new user issues an OP cmd with the same user ID (in ADD1) as an earlier user and "
        " the earlier user was incative for more than 60 seconds",
-   15: "User was backed out because a pending Work area o1.0.4ow",
+   15: "User was backed out because a pending Work area o1.3.0ow",
    17: "At end of online recovery process that was initiated after the failure"
        " of a peer nucleus in an Adabas cluster, the nucleus was unable to"
        " reacquire the ETID specified by the user in the Additions 1 field"
@@ -352,7 +352,11 @@ rsp55s={    #subcodes of RSP55
           Internal error (open systems)""",
     6: "Invalid length was specified ( for example, a wide character field in Unicode encoding must have an even length).",
     7: "Invalid conversion between formats (Read Parmeter)",
-    8: "Conversion error of a floating-point field (o1.0.4ow) when converting to/from a non-IBM floating-point format.",
+    8: "Conversion error of a floating-point field (o1.3.0ow) when converting to/from a non-IBM floating-point format.",
+    9: """A one-byte field was provided in the record buffer for the occurrence count of an MU field or PE group in a
+       file with extended MU/PE limits. A two-byte occurrence count value is expected.""",
+   10: "A field using the NC field option has a null value and no S indicator was specified in the format buffer.",
+
   254: "Length of Numeric field in format shorter than in the FDT.",
   255: "Field length exceeded maximum for variable fields.",
     # new in V82..
@@ -535,7 +539,7 @@ rsp253s={ # subcodes of RSP253
 rspdict = {
       0:"Command successfully executed",
       1:"ISN list not sorted, or records omitted due to SBV",
-      2:"Hold queue o1.0.4ow using prefetch",
+      2:"Hold queue o1.3.0ow using prefetch",
       3:"End of file",
       4:"S2/S9 is not allowed for expanded files",
       5:("Error in system view compression", rsp5s),
@@ -591,14 +595,14 @@ rspdict = {
       72:"No space for user in user queue",
       73:"No space for search result on work",
       74:"No temporary space on work for search",
-      75:"Extent o1.0.4ow in FCB",
+      75:"Extent o1.3.0ow in FCB",
       76:"More than 15 levels in inverted list hierarchy",
       77:"ASSO/DATA storage space exhausted",
       78:"No additional ISN available",
       79:"Hyper-de/collating-de exit not specified or ues=no",
       82:"Hyperexit returned an invalid ISN",
-      84:"Workpool o1.0.4ow during sub/super update",
-      85:"DVT o1.0.4ow during update command",
+      84:"Workpool o1.3.0ow during sub/super update",
+      85:"DVT o1.3.0ow during update command",
       86:"Incorrect value returned by hyperdescriptor exit",
       87:"The bufferpool is locked",
       88:"Insufficient memory",
@@ -663,7 +667,7 @@ rspdict = {
       201:"Unknown password",
       202:"Unauthorized attempt to access file",
       203:"unauthorized attempt to access record",
-      204:"Password pool o1.0.4ow",
+      204:"Password pool o1.3.0ow",
       209:"(reserved for external security interface)",
       210:"Logical id greater 255",
       211:"Invalid id table index in UB",
@@ -696,7 +700,7 @@ rspdict = {
       241:"Could not load specified user exit",
       252:"Error during interpartition communication",
       253:("Invalid buffer length during interpartition communication",rsp253s),
-      254:"CT limit exceeded, or attached buffer o1.0.4ow",
+      254:"CT limit exceeded, or attached buffer o1.3.0ow",
       255:"No space in attached buffer pool for command (NAB)" }
 
 rspplugins={}
@@ -725,25 +729,31 @@ def rsptext(rsp,subcode1=0,subcode2=0,erri='',cmd='',subcmd1='',subcmd2=''):
         return plugin(rsp, subcode1=subcode1, subcode2=subcode2,
                    cmd=cmd,subcmd1=subcmd1,subcmd2=subcmd2)
 
+    """
     c1=chr(subcode1 & 0xff)
     c2=chr( (subcode1 >> 8)& 0xff)
     c3=chr(subcode2 & 0xff)
     c4=chr( (subcode2 >> 8)& 0xff)
+    """
+    c1=bytes([       subcode1 & 0xff,])
+    c2=bytes([ (subcode1 >> 8)& 0xff,])
+    c3=bytes([       subcode2 & 0xff,])
+    c4=bytes([ (subcode2 >> 8)& 0xff,])
 
     if subcode2 == 0:
         if subcode1>>16:
-            c1=chr( (subcode1 >> 24)& 0xff)
-            c2=chr( (subcode1 >> 16)& 0xff)
-            if  c1 > '\x80' and c2 > '\x80':
+            c1=bytes([ (subcode1 >> 24)& 0xff,])
+            c2=bytes([ (subcode1 >> 16)& 0xff,])
+            if  c1 > b'\x80' and c2 > b'\x80':
                 c1 = str2asc(c1)
                 c2 = str2asc(c2)
 
-    if c1>' ' and c2>' ': # ff = field name if both bytes > ' '
-        ff='"'+c1+c2+'"'
-    elif c3>' ' and c4>' ':
-        ff='"'+c3+c4+'"'
+    if c1 > b' ' and c2 > b' ': # ff = field name if both bytes > ' '
+        ff=b'"'+c1+c2+b'"'
+    elif c3 > b' ' and c4 > b' ':
+        ff=b'"'+c3+c4+b'"'
     else:
-        ff=''
+        ff=b''
 
     if subcode2==0 and subcode1==0:
         ss=''
@@ -774,7 +784,7 @@ def rsptext(rsp,subcode1=0,subcode2=0,erri='',cmd='',subcmd1='',subcmd2=''):
     else:
         return 'Adabas Response %s: no explanation available' % rsp
 #
-#  Copyright 2004-2019 Software AG
+#  Copyright 2004-2023 Software AG
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.

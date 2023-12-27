@@ -12,22 +12,25 @@
 #DIST_DIR=dist
 
 PYTHON=python
-SED=C:\BAT\UnxUtils\upd\sed
-THISYEAR=2019
+#SED=C:\BAT\UnxUtils\upd\sed
+MED=$(PYUSP)\massedit.py    # user's appdata sitepackage
+THISYEAR=2023
 SUBP=adabas         # subpackage
 PACK=adapya-$(SUBP) # adapya package
-MAKDIR=C:\temp\apy
+MAKDIR=$(USERPROFILE)\adas\temp\apy
 
 
 #EASY_INSTALL=env/bin/easy_install-$(VERSION)
 #PYTEST=env/bin/py.test-$(VERSION)
 #NOSE=env/bin/nosetests-$(VERSION
 APYURL=http://redsvngis.eur.ad.sag/ADA/adapy
-APYWC=C:/adas/adapy
-GITDIR=C:\adas\git
+APYWC=$(USERPROFILE)\adas\adapy
+GITDIR=$(USERPROFILE)\adas\git
 
-SVN="C:\Program Files\TortoiseSVN\bin\svn.exe"
-SVNVERSION="C:\Program Files\TortoiseSVN\bin\svnversion.exe"
+#SVN="C:\Program Files\TortoiseSVN\bin\svn.exe"
+#SVNVERSION="C:\Program Files\TortoiseSVN\bin\svnversion.exe"
+SVN="svn"
+SVNVERSION="svnversion"
 
 
 # VRL version.release.level (e.g. 1.2.3) must be set from outside
@@ -66,17 +69,24 @@ release:
     cd $(PACK)-$(VRL)
     call prune.bat
     del prune.bat
-    $(SED) -i "s/v.r.l/$(VRL)/" setup.py adapya\adabas\*.py adapya\adabas\doc\*.py adapya\adabas\doc\*.rst
-    $(SED) -i "s/ThisYear/$(THISYEAR)/" adapya\adabas\*.py adapya\adabas\doc\*.py adapya\adabas\doc\*.rst
+    rem $(SED) -i "s/v.r.l/$(VRL)/" setup.py adapya\adabas\*.py adapya\adabas\doc\*.py adapya\adabas\doc\*.rst
+    rem $(SED) -i "s/ThisYear/$(THISYEAR)/" adapya\adabas\*.py adapya\adabas\doc\*.py adapya\adabas\doc\*.rst
+    python $(MED) -w -e "re.sub('v.r.l', '$(VRL)', line)" setup.py
+    python $(MED) -w -e "re.sub('v.r.l', '$(VRL)', line)" adapya\adabas\*.py
+    python $(MED) -w -e "re.sub('v.r.l', '$(VRL)', line)" adapya\adabas\doc\*.py
+    python $(MED) -w -e "re.sub('v.r.l', '$(VRL)', line)" adapya\adabas\doc\*.rst
+    python $(MED) -w -e "re.sub('ThisYear', '$(THISYEAR)', line)"  adapya\adabas\*.py
+    python $(MED) -w -e "re.sub('ThisYear', '$(THISYEAR)', line)"  adapya\adabas\doc\*.py
+    python $(MED) -w -e "re.sub('ThisYear', '$(THISYEAR)', line)"  adapya\adabas\doc\*.rst
     rem --- delete  GIT directory mirror but leave hidden files (.git)
     del /A-H /q $(GITDIR)\$(PACK)\*.*
     del /S /q $(GITDIR)\$(PACK)\adapya\*.*
     xcopy /s /y /q * $(GITDIR)\$(PACK)
     cd $(GITDIR)\$(PACK)
-    pandoc --from=rst --to=gfm --output=README.md README.rst
-    cd $(MAKDIR)
+    rem pandoc --from=rst --to=gfm --output=README.md README.rst
+    cd $(MAKDIR)/$(PACK)-$(VRL)
     rem ---
-    $(PYTHON) setup.py sdist --formats=tar,zip
+    $(PYTHON) setup.py sdist --formats=gztar,zip
     cd ..
     xcopy $(PACK)-$(VRL)\dist\* ..\apy
 
@@ -89,14 +99,19 @@ tag:
 # XCOPY /D copies files only newer than target /S include subdir /Y no prompt
 
 upload:
-    cd C:/temp/apy
+    cd $(MAKDIR)
     xcopy /D /Y $(PACK)-$(VRL).* V:\tools\Python\adapya
     cd C:$(PACK)-$(VRL)/adapya/$(SUBP)
     xcopy /S /D /Y doc\_build V:\tools\Python\adapya\doc\$(SUBP)
 
-#sphinx-build option -a always write all output files
+# sphinx-build option -a always write all output files
+# copy .nojekyll file to docs dir: this will disable GIGHUB's own pages formatting
 
 docs:
-         cd C:/temp/apy/$(PACK)-$(VRL)/adapya/adabas
-         sphinx-build -a doc/ doc/_build/
+    cd $(MAKDIR)/$(PACK)-$(VRL)/adapya/adabas
+    sphinx-build -a doc/ doc/_build/
+    xcopy /D $(APYWC)\trunk\*.nojekyll $(GITDIR)\$(PACK)\docs
+    xcopy /D /s /y /q doc\_build\* $(GITDIR)\$(PACK)\docs
+
+
 

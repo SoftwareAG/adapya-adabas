@@ -13,12 +13,12 @@ A required package is adapya-base which will be also installed by pip.
 
 Or to install from a zip file (similarly for tar file)::
 
-  > pip install adapya-adabas-1.0.4.zip
+  > pip install adapya-adabas-1.3.0.zip
 
 On z/OS use the following parameters (in one line)::
 
   > pip install -U --no-index --disable-pip-version-check
-        --no-binary all adapya-adabas-1.0.4.zip
+        --no-binary all adapya-adabas-1.3.0.zip
 
 .. note::
    If your local internet is protected by a http proxy you may need to set
@@ -62,9 +62,9 @@ path for modules.
 
 For example, on Windows the following steps would do a PYTHONPATH installation:
 
-- The zip file adapya-adabas-1.0.4.zip contains a directory adapya/adabas/\*
+- The zip file adapya-adabas-1.3.0.zip contains a directory adapya/adabas/\*
 
-- Unzip adapya-adabas-1.0.4.zip to a convenient location e.g.::
+- Unzip adapya-adabas-1.3.0.zip to a convenient location e.g.::
 
     > C:/ADA/Python
 
@@ -76,7 +76,7 @@ For example, on Windows the following steps would do a PYTHONPATH installation:
   Extended Control / button Environment Variable::
 
     > REM adapya-adabas Python directory
-    > set PYA=C:\ada\python\adapya-adabas-1.0.4
+    > set PYA=C:\ada\python\adapya-adabas-1.3.0
     > set PYTHONPATH=%PYA%;%PYTHONPATH%
 
 When the Python interpreter is started it evaluates the environment
@@ -143,7 +143,7 @@ python modules. If the path to the Adabas Python directory is added to
 the variable it is included in the search::
 
     cd /FS/disk01/pya              # root directory
-    tar xf adapya-adabas-1.0.4.tar # unpack to adapya-adabas-v.r.l
+    tar xf adapya-adabas-1.3.0.tar # unpack to adapya-adabas-1.3.0
     setenv PYA "/FS/disk01/pya"
     setenv PYTHONPATH $PYA':'$PYTHONPATH # add PYA to PYTHONPATH
     cd $PYA/adapya/adabas/scripts # go to directory

@@ -9,11 +9,12 @@
 
         -m, --maxrec   <int>  maximum number of records (default 10)
         -n, --nullprint  print fields with null value
-        -p, --pwd      <password>  FTP server login password (*)
-        -u, --user     <userid> FTP server login userid      (*)
+        -p, --pwd      <password>  FTP ser1.3.0ogin password (*)
+        -u, --user     <userid> FTP ser1.3.0ogin userid      (*)
         -h, --host     <host name> of IBM FTP server         (*)
 
         -c, --config   Set/show configuration
+        -C, --certfile certificate file (.pem)
         -v, --verbose  dump records and more output
         -?, --help
 
@@ -40,13 +41,12 @@
 from __future__ import print_function          # PY3
 import sys,os
 import getopt
-from adapya.base.ftptoolz import Ftpzos
 from adapya.base.jconfig import getparms,setparms,SHOWCONFIG
 from adapya.base.dump import dump
 from adapya.adabas.asmfrec import Asbase0,ASBASELN0,Aspid0,Asunknown
 
-__date__='$Date: 2018-04-18 18:26:24 +0200 (Wed, 18 Apr 2018) $'
-__version__='$Rev: 815 $'
+__date__='$Date: 2023-01-04 10:56:59 +0100 (Wed, 04 Jan 2023) $'
+__version__='$Rev: 1050 $'
 
 # default values
 host=None
@@ -54,13 +54,14 @@ user=None
 pwd=None
 
 config = 0
+certfile = None
 dsn = ''         # Dataset name
 fname = ''       # local file name
 verbose = 0
 BDW = 0          # with BDW block descriptor word prefix
 block_rlen = 0   # block rest length
 maxrec = 10      # default 10 records
-skipnull = 1    # do not print fields with null values
+skipnull = 1     # do not print fields with null values
 recno = 0        # record counter
 version = 0      # version unknown
 MONTHDICT = {'JANUARY':'01', 'FEBRUARY':'02', 'MARCH':'03', 'APRIL':'04',
@@ -80,7 +81,40 @@ def setsect(idsect):
     revsect.dmname='Review-defined section in Adabas SMF record'
     unknown=Asunknown()
 
-    if idsect.smfv == b'\x02\x01':
+    if idsect.smfv == b'\x03\x01':
+        from adapya.adabas.asmfrec31 import Asbase, ASBASELN,\
+            Aspid, Asparm, Asunknown, Assess, Asstg, Asiodd, Asthrd, Asfile,\
+            Ascmd, Aschp, Aschg, Aschb, Aschf, Aslok, \
+            Asmsgb, Asmsgc, Asmsgh, Ziip, isep
+
+        secttab=[
+            # section class, index from ID section, 0/1 use line print rather than detail
+            ( Aspid(), 0, 0),       # ID section
+            ( usersect, 1, 0),      # user defined
+            ( Asparm(), 2, 0),      # ADARUN parameters
+            ( Asstg(), 3, 1),       # Storage pool
+            ( Asiodd(), 4, 1),      # I/O by DD name
+            ( Asthrd(), 5, 1),      # Thread activity
+            ( Asfile(), 6, 1),      # File activity
+            ( Ascmd(), 7, 1),       # Command activity
+            ( Aschp(), 8, 0),       # Parallel services cache
+            ( Aschg(), 9, 0),       # Global cache
+            ( Aschb(), 10, 0),      # Global cache by block type
+            ( Aschf(), 11, 0),      # Global cache by file
+            ( Aslok(), 12, 0),      # Global locks
+            ( Asmsgb(), 13, 0),     # Inter-nucleus messaging control blocks
+            ( Asmsgc(), 14, 0),     # Inter-nucleus messaging counts
+            ( Asmsgh(), 15, 0),     # Inter-nucleus messaging histogram
+            ( revsect, 16, 0),      # Review messaging
+            ( Assess(), 17, 0),     # Nucleus session statistics
+            ( Ziip(), 18, 0),       # zIIP statistics
+            ( unknown, 19, 0),
+            ( unknown, 20, 0),
+            ( unknown, 21, 0),
+            ( unknown, 22, 0),
+            ]
+
+    elif idsect.smfv == b'\x02\x01':
         from adapya.adabas.asmfrec21 import Asbase, ASBASELN,\
             Aspid, Asparm, Asunknown, Assess, Asstg, Asiodd, Asthrd, Asfile,\
             Ascmd, Aschp, Aschg, Aschb, Aschf, Aslok, \
@@ -243,9 +277,9 @@ def setsect(idsect):
 
 try:
   opts, args = getopt.getopt(sys.argv[1:],
-    '?b:d:f:h:m:np:u:cv',
+    '?b:d:f:h:m:np:u:cC:v',
     ['help','bfile=','file=','host=','pwd=','maxrec=',
-        'nullprint','user=','config','verbose'])
+        'nullprint','user=','config','certfile=','verbose'])
 except getopt.GetoptError:
   print( sys.argv[1:])
   usage()
@@ -258,6 +292,8 @@ for opt, arg in opts:
   if opt in ('-?', '--help'):
     usage()
     sys.exit()
+  elif opt in ('-C', '--certfile'):
+    certfile = arg
   elif opt in ('-c', '--config'):
     config=1
   elif opt in ('-d', '--dsn'):
@@ -290,25 +326,29 @@ if config:
         print( 'Updating configuration file .ztools')
         setparms('ftp',SHOWCONFIG,**ftpcfg) # only update parms if not default
     """
-    if host or pwd or user:
+    if host or pwd or user or certfile:
         print( 'Updating configuration file .ztools')
-        setparms('ftp',SHOWCONFIG,host=host,pwd=pwd,user=user) # only update parms if not default
+        # only update parms if not default
+        setparms('ftp',SHOWCONFIG,host=host,pwd=pwd,user=user,certfile=certfile)
     else:
         print( 'Reading configuration file .ztools')
-        getparms('ftp',SHOWCONFIG,host='',user='',pwd='') # emtpy parms
+        getparms('ftp',SHOWCONFIG,host='',user='',pwd='',certfile='') # emtpy parms
     sys.exit()
 
 if dsn:
+    from adapya.base.ftptoolz import Ftpzos # only import when needed
+
     # get ftp parameters (host,user,pwd) if not set by caller
-    ftpcfg = getparms('ftp',verbose,host=host,user=user,pwd=pwd)
+    ftpcfg = getparms('ftp',verbose,host=host,user=user,pwd=pwd,certfile=certfile)
     host=ftpcfg.get('host','') # make sure that parms are not None
     pwd=ftpcfg.get('pwd','')
     user=ftpcfg.get('user','')
+    certfile=ftpcfg.get('certfile','')
 
     if not fname:
         fname = dsn.strip("'") # remove quotes
 
-    ftpz=Ftpzos(host,user,pwd,verbose=verbose,test=0)  # zos jes extensions
+    ftpz=Ftpzos(host,user,pwd,certfile=certfile,verbose=verbose,test=0)  # zos jes extensions
     ftp=ftpz.ftp # ftplib.FTP session for orinary ftp commands
 
     ftpz.getbinaryfile(dsn,fname,rdw=1) # read SMF file with variable records

@@ -8,6 +8,9 @@
                   [--search <search>] [--value <value>]
                   [--read  {<search>|ISN|PHY}
                   [--sort <sort fields>]
+
+               --meta <metafile>
+
     Options:
 
         -a, --arc               <arc> client architecture (e.g. 9 = Wintel)
@@ -21,22 +24,29 @@
 
         -h, --help              display this help
         -i  --isnlist <numisns> return list of ISNs with isn buffer to hold <numisns>
-        -j  --isnlowerlimit <isn>  lower limit on ISN for search,
-                                   start ISN for read
+        -j  --isnlowerlimit <isn>   lower limit on ISN for search,
+                                    start ISN for read
+            --isnrange <from>-<to>  range of ISNs to read with READ by ISN
         -k  --cred  <uid>,<psw>[,newpsw]  Userid, password and optionally new
                                    password for security system (ADASAF)
         -l, --read  <search crit.>|ISN|PHY  read command L3|L1|L2 rather than search S1
 
         -m, --multifetch <mf>   Number of records to read with multifetch option
+
+        -M, --metafile          Python script that defines dbid, fnr, format and datamap
+                                  for records to be read
+
         -n, --noclose           leave session open (use for testing only)
                                   and do not start with OP (if no acode,arc
                                   wcode and timezone parameters are given)
         -p, --password <pw>     set password for the session
         -q, --quantity <n>      number of records to read (default 8)
-                                all or 0 (not records to read)
+                                all or 0 (no records to be read, just search)
                                 if there are more records user will be prompted
         -r, --replytimeout <sec>  Adalink max. wait time on reply
         -s  --search <search fields>  search fields
+        -S, --super             replace Adabas class adapya.adabas.api.Adabas
+                                    with other (experimental)
         -t  --sort <sort fields> up to 3 field names may be specified, uses S2 command
                                 e.g. -t AABBCC
         -u  --wcode             User encoding for Wide fields (e.g. 4091 for UTF-8)
@@ -53,15 +63,24 @@ Search with search criterion in search/value
 
 >>>  search -d 10006 -f 9 --value "SALE04DEL CASTILLO        " --search S2. --format AO,AE.
 
-Read by AO descriptor starting from SALE04
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
->>> search -d 10006 -f 9 -r 7200 --format AO,AE. --read AO. --value SALE04
 
 Histogram of AO descriptor starting from SALE04
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 >>> search -d 10006 -f 9 -r 7200 --format AO. --histogram AO. --value SALE04
+
+
+Read by AO descriptor starting from SALE04
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+>>> search -d 10006 -f 9 -r 7200 --format AO,AE. --read AO. --value SALE04
+
+>>> search -M emptel --read AO. --value SALE04
+
+Uses Metadata information from emptel.py for dbid, fnr, format and mapping record
+
+todo: metadata with search commands
+      metadata with multifetch (add offsets for each record)
 
 """
 from __future__ import print_function          # PY3
@@ -74,19 +93,30 @@ from adapya.adabas.api import DataEnd, DatabaseError, InterfaceError, adaSetTime
 from adapya.adabas.api import setsaf
 from adapya.adabas.fields import readfdt
 from adapya.base.defs  import log,LOGBEFORE,LOGCMD,LOGCB,LOGRB,LOGRSP,LOGFB, \
-    LOGSB,LOGIB,LOGVB
+    LOGSB,LOGIB,LOGMB,LOGVB,LOGSP,evals
 from adapya.base.conv  import str2ebc
 from adapya.base.datamap import funpack, Datamap, String, T_VAR0
 from adapya.base import datamap
+import datetime
 import getopt
 import sys
+import os
 
 def usage():
     print(__doc__)
 
-def dehex(s):
-    """ convert input string containing \x00 into hex values in string
-    :todo: Python3
+if sys.hexversion >= 0x3010100: # PY3
+    PY3 = True
+    getinput = input
+
+else:
+    PY3 = False
+    getinput = raw_input
+
+
+def dehex(s): # unused: use adapya.base.evals or evalb (for byte strings)
+    """ convert input string or byte string containing hexadecimal
+        escape characters \x00 into hex values in string or byte string
 
     >>> dehex('abc')
     'abc'
@@ -97,16 +127,29 @@ def dehex(s):
     >>> dehex(r'\xffabc\x00')
     '\xffabc\x00'
 
+    >>> dehex(b'abc\x00')
+    b'abc\x00'
+
     """
-    sr = ''
+    if type(s) == type(''):
+        sr = ''              # string type
+        sx = r'\x'
+    else:
+        sr = b''             # bytes type
+        sx = rb'\x'
+
     while s:
-        sl = s.split(r'\x',1)
-        sr += sl[0]
-        if len(sl) == 1:
+        sl = s.split(sx,1)
+        sr += sl[0]         # take string before \x
+        if len(sl) == 1:    # no \x found
             return sr
-        s = sl[1][2:]
-        x = sl[1][0:2]
-        sr += chr( int(x,base=16))
+        x = sl[1][0:2]      # hex chars after \x
+        s = sl[1][2:]       # rest string
+
+        if type(s) == type(''):
+            sr += chr(int(x,base=16))
+        else:
+            sr += bytes.fromhex(x)
     return sr
 
 debug=0
@@ -114,13 +157,18 @@ arc=None
 acode=0
 acbx=0
 dbid=0
+dmap = None     # datamap from metadata
+dprint = None   # detail print function from metadata
 descending=0
 fnr=0
 format=''
 histo=''
+islstr=''
 isnlist=0
 isnlower=0
+toisn = 0  # test
 multifetch=1
+metadata = None
 password=''
 noclose=0
 quantum = 8
@@ -129,6 +177,7 @@ replytimeout=0
 safuid=safpw=safnew=''
 search=''
 sortfields=''
+superc=''
 value=''
 verbose=0
 wcode=0
@@ -136,11 +185,11 @@ timezone=''
 
 try:
     opts, args = getopt.getopt(sys.argv[1:],
-      'a:b:hDd:f:g:i:j:k:l:m:np:q:r:v:c:s:t:w:u:xz:',
+      'a:b:hDd:f:g:i:j:k:l:m:M:np:q:r:v:c:s:S:t:w:u:xz:',
       ['help','acode=','arc=','cred=','dbid=','descending','fnr=','histogram=',
-       'multifetch=','noclose', 'password=','quantity','replytimeout=',
-       'verbose=','format=','search=','sort=','value=','read=','isnlist=',
-       'isnlowerlimit=','wcode=','acbx','timezone='])
+       'multifetch=','meta=','noclose', 'password=','quantity','replytimeout=',
+       'verbose=','format=','search=','sort=','super=','value=','read=','isnlist=',
+       'isnlowerlimit=','isnrange=','wcode=','acbx','timezone='])
 except getopt.GetoptError:
     usage()
     print( opts, args)
@@ -177,6 +226,13 @@ for opt, arg in opts:
         histo=arg
     elif opt in ('-m', '--multifetch'):
         multifetch=int(arg)
+        if multifetch==0:
+            multifetch=1    # no multifetch
+    elif opt in ('-M', '--meta'):
+        metafile = arg
+        import importlib
+        memo = importlib.import_module(metafile)
+        metadata = memo.metadata
     elif opt in ('-n', '--noclose'):
         noclose=1
     elif opt in ('-p', '--password'):
@@ -191,8 +247,8 @@ for opt, arg in opts:
         readop=arg
     elif opt in ('-i', '--isnlist'):
         isnlist=int(arg)
-    elif opt in ('-j', '--isnlowerlimit'):
-        isnlower=int(arg)
+    elif opt in ('-j', '--isnlowerlimit', '--isnrange'):
+        islstr=arg
     elif opt in ('-x', '--acbx'):
         acbx=1
     elif opt in ('-r', '--replytimeout'):
@@ -203,14 +259,23 @@ for opt, arg in opts:
         format=arg
     elif opt in ('-s', '--search'):
         search=arg
+    elif opt in ('-S', '--super'):
+        superc=arg
     elif opt in ('-w', '--value'):
-        value=dehex(arg)
+        value= evals(arg) # dehex(arg)
     elif opt in ('-t', '--sort'):
         sortfields=arg
     elif opt in ('-z', '--timezone'):
         timezone=arg
     elif opt in ('-u', '--wcode'):
         wcode=int(arg)
+
+if islstr:
+    fromto=islstr.split('-')
+    if len(fromto) == 2:    # range given?
+        isnlower, toisn = int(fromto[0]), int(fromto[1])
+    else:
+        isnlower = int(fromto[0])
 
 if safuid and safpw:
     i = setsaf(safuid, safpw, safnew)
@@ -226,31 +291,59 @@ if readop:
     else:
         readmod=3
 
-def contfunc(i,conttext='continue'):
+    if search:
+        raise AssertionError(
+            'Do not specify "search" and "read" parameters')
+
+if metadata:
+    if dbid == 0:
+        dbid = metadata.dbid
+    if fnr == 0:
+        fnr = metadata.fnr
+    # basic datamap for the record
+    dmap = metadata.dmap
+    # dprint in metafile may use more datamaps e.g. for redefines
+    dprint = metadata.dprint
+
+def contfunc(i,conttext='continue',defquantum=0):
     cont=i-1
     if cont<1:
         try:
-            cont=int(raw_input('  ENTER or number to %s:'%conttext))
+            cont = int( getinput('  ENTER or number to %s:'%conttext))
         except:
-            cont=int(input('  ENTER or number to %s:'%conttext))
+            cont = defquantum
     return cont
 
-rbl1=4096
-rblm=min(rbl1*multifetch, 2**15-1 if not acbx else 2**20-1) # limit rbl
-mbl=4+16*multifetch
+rbl1 = dmap.getsize() if dmap else 4096
+rblm = min(rbl1*multifetch, 2**15-1 if not acbx else 2**20-1) # limit rbl
+mbl = 4+16*multifetch
 
-if acbx:
-    c1=Adabasx(fbl=256,rbl=rblm,sbl=32,vbl=128,ibl=isnlist*4,mbl=mbl,
-        multifetch=multifetch,password=password)
-    c1.cb.dbid=dbid
-else:
-    c1=Adabas(fbl=256,rbl=rblm,sbl=32,vbl=128,ibl=max(isnlist*4,mbl),
-        multifetch=multifetch,password=password)
+fbl = len(metadata.fb) if metadata else len(format)
+
+if superc:
+    import importlib
+    simp = superc.split('.')   # split adapya.adabas.api.Adabas
+    sname = simp.pop()        # last part class to import 'Adabas'
+    simp = '.'.join(simp)
+    ai = importlib.import_module(simp)
+    sclass = getattr(ai,sname)
+    c1 = sclass(fbl=fbl,rbl=rblm,sbl=32,vbl=128,ibl=max(isnlist*4,mbl),
+            multifetch=multifetch,password=password)
     c1.dbid=dbid
+    print('super:',repr(c1))
+else:
+    if acbx:
+        c1=Adabasx(fbl=fbl,rbl=rblm,sbl=32,vbl=128,ibl=isnlist*4,mbl=mbl,
+            multifetch=multifetch,password=password)
+        c1.cb.dbid=dbid
+    else:
+        c1=Adabas(fbl=fbl,rbl=rblm,sbl=32,vbl=128,ibl=max(isnlist*4,mbl),
+            multifetch=multifetch,password=password)
+        c1.dbid=dbid
 
 c1.cb.fnr=fnr
 c1.cb.cid='SSPY'
-c1.fb.write(format)
+c1.fb.write(metadata.fb if metadata else format)
 #c1.sb.write(search)
 #c1.vb.write(value)
 
@@ -258,23 +351,38 @@ if replytimeout:
     rsp=adaSetTimeout(replytimeout)
     # print( 'adaSetTimeout set to %d, response=%d' % (replytimeout, rsp))
 
+if acbx:
+    logmb = LOGMB if multifetch>0 else 0
+else:
+    # ACB calls use ISN buffer for multifech elements
+    logmb = LOGIB if multifetch>0 else 0
+
 if verbose > 1:
-    LOGS1=LOGCMD|LOGCB|LOGFB|LOGRB|LOGRSP|LOGVB|LOGSB|LOGIB|LOGBEFORE
-    LOGRD=LOGCMD|LOGCB|LOGFB|LOGRB|LOGRSP|LOGBEFORE
+    LOGS1=LOGCMD|LOGCB|LOGFB|LOGRB|LOGRSP|LOGVB|LOGSB|LOGIB|LOGBEFORE|logmb
+    LOGL3=LOGCMD|LOGCB|LOGFB|LOGRB|LOGRSP|LOGVB|LOGSB|LOGBEFORE|logmb
+    # LOGRD=LOGCMD|LOGCB|LOGFB|LOGRB|LOGRSP|LOGBEFORE|logmb
+    LOGRD=LOGCMD|LOGCB|LOGSP|LOGBEFORE|logmb
     LOG0=LOGCMD|LOGCB|LOGRSP|LOGBEFORE
+    #LOG0=LOGRSP
 
 elif verbose == 1:
-    LOGS1=LOGCMD|LOGCB|LOGFB|LOGRB|LOGRSP|LOGVB|LOGSB|LOGIB
-    LOGRD=LOGCMD|LOGCB|LOGFB|LOGRB|LOGRSP
-    LOG0=LOGCMD|LOGCB|LOGRSP
+    LOGS1=LOGCMD|LOGCB|LOGFB|LOGRB|LOGRSP|LOGVB|LOGSB|LOGIB|logmb
+    LOGL3=LOGCMD|LOGCB|LOGFB|LOGRB|LOGRSP|LOGVB|LOGSB|logmb
+    LOGRD=LOGCMD|LOGCB|LOGFB|LOGRB|LOGRSP|logmb
+    # LOGRD=LOGCMD|LOGCB|LOGSP|LOGRSP
+    #LOG0=LOGCMD|LOGCB|LOGRSP
+    LOG0=LOGRSP
 else:
-    LOGS1=LOGRD=LOG0=LOGRSP
+    LOGL3=LOGS1=LOGRD=LOG0=LOGRSP
 
+starttime = datetime.datetime.now()
 #c1.open(wcharset='UTF-8',acode=819,tz='Europe/Berlin',arc=9)
 
 try:
-    log(LOGS1)
-    if not noclose or arc or acode or wcode or timezone:
+    log(LOG0)
+    if superc:
+        c1.open()
+    elif not noclose or arc or acode or wcode or timezone:
         c1.open(arc=arc,acode=acode,wcode=wcode,tz=timezone)
         c1.printopsys()
 
@@ -284,6 +392,7 @@ try:
     if search:  # search/value criteria specified
         c1.sb.write(search)
         c1.vb.write(value)
+        desc = ''
     # else:
     #    c1.searchfield('S2',6,'SALE04*') #'SALE10'
     #    c1.sb.write('.')    # finalize search buffer
@@ -292,22 +401,25 @@ try:
         desc=readop[0:2]      # extract descriptor
         c1.sb.write(readop)    # set selection criterion
         c1.vb.write(value)
+        log(LOGL3)
     elif histo:
         desc=histo[0:2]      # extract descriptor
         c1.sb.write(histo)   # set selection criterion
         c1.vb.write(value)
     else:
         desc=''
+        log(LOGRD)
 
     c1.cb.cid='SSP2'
     inloop=1
 
-    if readop:
+    if 0: # readop:
         c1.call(cmd='RC',op1='I',op2='S')  # release TBI and TBLES eq to CID
         c1.cb.ad1=desc+' '*6
         c1.cb.isn=isnlower  # start ISN
         if readmod==1:
-            c1.setcb(cmd='L1',op1=' ',op2='I')
+            # set TOISN in ACBISQ if specified
+            c1.setcb(cmd='L1',op1=' ',op2='I', isq=toisn)
         elif readmod==2:
             c1.setcb(cmd='L2',op1=' ',op2=' ')
         else:
@@ -316,23 +428,77 @@ try:
         try:
             nr=0
             cont=quantum  # quantity parameter at program start
-            log(LOGRD)
-            print( '-seq- -ISN- ---Record---')
+            if dmap:
+                dmap.buffer = c1.rb
+                if rbl1 < 100:
+                    dmap.lprint(header=1, col1='-seq- -ISN-')  # print header
+            else:
+                print( '-seq- -ISN- ---Record---')
             while 1:
                 c1.call()
                 nr+=1
                 ldec = c1.cb.ldec if acbx else c1.sub2
-                print( '%5d %5d %s' % (nr, c1.cb.isn, c1.rb.read_text(ldec)))
-                c1.rb.seek(0)   # reposition to record start for next read_text()
-                cont=contfunc(cont,'read next n records')
+                c1.rb.seek(0)   # reposition to record start for read_text()
+
+                if dmap:
+                    if rbl1 < 100:
+                        dmap.lprint(col1='%5d %5d'%(nr,c1.cb.isn) )  # print line
+                    else:
+                        print( '%5d %5d %s' % (nr, c1.cb.isn, 'Record'))
+                        if dprint:
+                            dprint()
+                        else:
+                            dmap.dprint()   # print line
+
+                else:
+                    print( '%5d %5d %s' % (nr, c1.cb.isn, c1.rb.read_text(ldec)))
+
+                cont=contfunc(cont,'Read next n records', defquantum=quantum)
                 if cont<1:
                     break
                 if readmod==1:
                     c1.cb.isn+=1 # next higher ISN
-                log(LOGRD^LOGFB) # no FB
+                elif readmod==2:
+                    c1.cb.isn=0  # seq read keeps track of next ISN
+                log(LOGRD^LOGFB) # log FB no more
 
         except DataEnd:
-            pass
+            print('EOF - end of data')
+
+    elif readop:
+        if readmod == 1: # ISN
+            seq = 'I'    # includes descending and opt2 = K with to ISN
+        elif readmod == 2: # PHYS
+            seq = ''
+        else:           # by descriptor
+            seq = readop[0:2]
+
+        # datamap.debug=1
+        dm = Datamap( 'record',String('vrec' , 0, opt=T_VAR0, sizefunc=lambda: dm.dmlen ))
+        nr = 0
+        cont = quantum
+        print( '-seq- -ISN- -cmdtim- ---Record--')
+
+        print('seq = %r' % 'J' if seq=='I' and descending else seq)
+
+        c1.cb.rsv1=b'\xd5' # rsv1=N no option check
+
+        for isn,_ in c1.read(seq=seq,dmap=dm,descending=descending,startisn=isnlower,toisn=toisn):
+            nr += 1
+            dm.prepare() # adjust variable field
+            # print( c1.cb.ldec, dm.dmlen)
+            print( '%5d %5d %6.6f %s' % (nr, isn,
+                c1.cb.cmdt/4096000. if acbx else c1.cb.cmdt*16./1000,
+                dm.vrec ))
+            c1.cb.cmdt=0 # no further time for additional records in multifetch
+
+            if seq not in ('I') and nr == c1.cb.isq:
+                break
+
+            cont=contfunc(cont,'Read next n records', defquantum=quantum)
+            if cont<1:
+                break
+        datamap.debug=0
 
     elif histo:
         c1.call(cmd='RC',op1='I',op2='S')  # release TBI and TBLES eq to CID
@@ -352,13 +518,13 @@ try:
                 # with Histogram/L9 ISN of first ISN in ISN list is in ISL
                 print( '%5d %7d %8d %4d %s' % (nr, c1.cb.isl, c1.cb.isq, ldec, c1.rb.read_text(ldec)))
                 c1.rb.seek(0)   # reposition to record start for next read_text()
-                cont=contfunc(cont,'read next n descriptor values')
+                cont=contfunc(cont,'read next n descriptor values', defquantum=quantum)
                 if cont<1:
                     break
                 log(LOGRD^LOGFB) # no FB
 
         except DataEnd:
-            pass
+            print('EOF - end of data')
 
     else: # search case
         log(LOGS1)
@@ -406,7 +572,7 @@ try:
 
                 if nr == c1.cb.isq:
                     break
-                cont=contfunc(cont,'read next n records')
+                cont=contfunc(cont,'Read next n records', defquantum=quantum)
                 if cont<1:
                     break
         elif isq>0:   # new implementation get next via read()
@@ -428,18 +594,10 @@ try:
 
                 if nr == c1.cb.isq:
                     break
-                cont=contfunc(cont,'read next n records')
+                cont=contfunc(cont,'Read next n records', defquantum=quantum)
                 if cont<1:
                     break
             datamap.debug=0
-
-    if not noclose:
-        log(LOG0)
-        c1.close()
-        print('Adabas session closed. I/Os=%d, calls=%d, cpu=%4.3f ms' % (
-            c1.cb.isn, c1.cb.isl, c1.cb.isq/4096000. if acbx else c1.cb.isq * 1048.576))
-    else:
-        print( 'noclose: Skipping close to database %d' % dbid)
 
 except DatabaseError as e:
     print( 'DatabaseError Exception on database %d\n\t%s' % (dbid,e.value))
@@ -453,8 +611,19 @@ except Exception as e:
     from traceback import print_exc
     print_exc()
     sys.exit(12)
+finally:
+    if not noclose:
+        log(LOG0)
+        c1.close()
+        print('Adabas session closed. I/Os=%d, calls=%d, cpu=%4.3f ms' % (
+            c1.cb.isn, c1.cb.isl, c1.cb.isq/4096000. if acbx else c1.cb.isq * 1048.576))
+    else:
+        print( 'noclose: Skipping close to database %d' % dbid)
+    endtime = datetime.datetime.now()
+    print(endtime, '\n--- %s ended. Elapsed=%s' % (
+        os.path.basename(__file__), (endtime - starttime))) # msec prec.
 
-#  Copyright 2004-ThisYear Software AG
+#  Copyright 2004-2023 Software AG
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.

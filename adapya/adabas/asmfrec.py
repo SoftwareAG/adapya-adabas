@@ -93,6 +93,8 @@ class Aspid0(Datamap):
     #q AsSMFV15  equ     x'0105'            version 1.5 - zIIP V8.3
     #q AsSMFV16  equ     x'0106'            version 1.6 - zIIP V8.4
     #q AsSMFV21  equ     x'0201'            version 2.1 - PARM resequenced
+    #q AsSMFV22  equ     x'0202'            version 2.2 - STG pool HWM TOD
+    #q AsSMFV31  equ     x'0301'            version 3.1 - LBP size now 8 bytes
     Bytes('segno',1,caption='Record segment number'),
     Bytes('segl',1,caption='Last segment when = 0'),
     Uint2('numd',caption='Number of detail type triplets'),

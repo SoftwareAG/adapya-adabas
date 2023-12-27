@@ -11,6 +11,7 @@
 
         -a, --auth dbid,userid,password;... authentication for user for database
                                     (open systems only)
+        -C, --cinfo         include client info with Adabas call
         -d, --dbids <dbid>  is a valid dbid or a list of dbids  (i,j,...)
                             may have to be quoted "(i,j..)"
                             or a range of dbids i-j
@@ -30,8 +31,10 @@
         -w, --pwd <pwd>     password for ADASAF database
         -y, --newpass <npw> new password for ADASAF database
 
-        -v  --verbose <level> dump adabas buffers
-                            1 = after call  2 = before and after
+        -v  --verbose <level> dump adabas buffers. <level> is sum of
+                            1 = after call  2 = before
+                            4 = log client info  with performance buffer
+                                (needs use of ACBX: parameter x > 0
         -h, --help          display this help
 
     Examples:
@@ -41,8 +44,8 @@
         python dblist.py --dbids (241,10007,65535)
         python dblist.py -d 241 -f 10       display FDT of db 241 file 10
 
-$Date: 2019-11-08 15:01:35 +0100 (Fri, 08 Nov 2019) $
-$Rev: 947 $
+$Date: 2022-02-04 18:25:45 +0100 (Fri, 04 Feb 2022) $
+$Rev: 1025 $
 """
 from __future__ import print_function          # PY3
 
@@ -50,10 +53,9 @@ from adapya.adabas.api import Adabas, Adabasx, archit2str, adaSetParameter
 from adapya.adabas.api import DatabaseError, InterfaceError, adaSetTimeout
 from adapya.adabas.api import setsaf, setuidpw
 from adapya.adabas.fields import readfdt
-from adapya.base.defs import log,LOGBEFORE,LOGCMD,LOGCB,LOGRB,LOGRSP,LOGFB
+from adapya.base.defs import log,LOGBEFORE,LOGCMD
+from adapya.base.defs import LOGCB,LOGPB,LOGRB,LOGRSP,LOGFB
 from adapya.base.conv import str2ebc
-#   log(LOGCMD+LOGCB+LOGRB+LOGRSP)
-
 
 import getopt
 import sys
@@ -63,6 +65,7 @@ def usage():
 
 dbids=[]
 fnr=0
+cinfo=0
 dbidstr='(8,12,49,240,241,10006,10007,65534)'    # check dbids
 newpass=''
 noclose=0
@@ -76,8 +79,8 @@ verbose=0
 xopt=0
 try:
     opts, args = getopt.getopt(sys.argv[1:],
-      'a:hd:e:f:nPp:r:su:v:w:x:y:',
-      ['auth=,help','dbids=','env=','fnr=','newpass=','noclose','password=','ph',
+      'a:cd:e:f:hnPp:r:su:v:w:x:y:',
+      ['auth=','cinfo','dbids=','env=','fnr=','help','newpass=','noclose','password=','ph',
        'replytimeout=','silent','usr=','verbose=','pwd=','xopt='])
 except getopt.GetoptError:
     usage()
@@ -154,7 +157,7 @@ opsysDict={0: 'Mainframe (IBM/Siemens/Fujitsu)', 1: 'VMS', 2:
   "Unix, Windows", 4: 'Entire System Server'}
 
 if 0 < xopt < 3:
-    c1=Adabasx(rbl=80,fbl=10) # acbx needs fb/rb pair: fbl=0 gives error
+    c1=Adabasx(rbl=80,fbl=10,clientinfo=cinfo) # acbx needs fb/rb pair: fbl=0 gives error
 else:
     c1=Adabas(rbl=80)
 
@@ -166,12 +169,18 @@ if ph:
 if replytimeout:
     rsp=adaSetTimeout(replytimeout)
 
-if verbose > 1:
-    log(LOGCMD|LOGCB|LOGFB|LOGRB|LOGBEFORE)
-elif verbose == 1:
-    log(LOGCMD|LOGCB|LOGRB)
-else:
-    log(0) # we handle response codes here
+
+logparm = 0
+
+if verbose & 1:
+    logparm |= LOGCMD|LOGCB|LOGRB
+if verbose & 2:
+    logparm |= LOGCMD|LOGCB|LOGRB|LOGBEFORE
+if verbose & 4:
+    logparm |= LOGPB
+log(logparm)
+
+
 
 for i in dbids:  # loop through list of databases
     if i < 1 or i > 65535:  # halt on invalid dbid
@@ -232,7 +241,7 @@ for i in dbids:  # loop through list of databases
         raise
         sys.exit(12)
 
-#  Copyright 2004-ThisYear Software AG
+#  Copyright 2004-2023 Software AG
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.

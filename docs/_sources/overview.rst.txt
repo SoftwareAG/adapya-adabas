@@ -34,6 +34,12 @@ For more information about *Adabas* see
 -   in the download area you may also find the FREE Adabas community edition.
 
 
+More adapya packages are available:
+
+- adapya-base: Basic adapya package required by adapya-adabas
+- adapya-era: Client interface to Event Replicator for Adabas
+- adapya-entirex: Client interface to Entirex Broker
+
 
 **Notes**
 
@@ -51,6 +57,13 @@ For more information about *Adabas* see
 
 Change History
 ==============
+
+
+**adapya-adabas 1.3.0 (Dec 2023)**
+
+- Support of z/OS with the IBM Open Enterprise SDK for Python 3.8 and higher
+- scripts/search.py: Support for Read by ISN descending and Read by ISN to <ISN>
+  and display of records structured by metadata/datamap
 
 **adapya-adabas 1.0.0 (May 2018)**
 
@@ -81,7 +94,7 @@ Change History
 adapya-adabas License
 =====================
 
-Copyright 2004-2019 Software AG
+Copyright 2004-2023 Software AG
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

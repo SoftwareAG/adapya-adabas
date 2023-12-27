@@ -32,8 +32,8 @@ Supports ASMF versions 1.3 (ada834), 1.4 (ada842), 1.5 (azp835) and 1.6 (azp843)
         -b  --bfile    <file> local SMF file VB blocked with BDW
 
         -m, --maxrec   <int>  maximum number of records (default 10)
-        -p, --pwd      <password>  FTP ser1.0.4ogin password (*)
-        -u, --user     <userid> FTP ser1.0.4ogin userid      (*)
+        -p, --pwd      <password>  FTP ser1.3.0ogin password (*)
+        -u, --user     <userid> FTP ser1.3.0ogin userid      (*)
         -h, --host     <host name> of IBM FTP server         (*)
 
         -c, --config   Set/show configuration

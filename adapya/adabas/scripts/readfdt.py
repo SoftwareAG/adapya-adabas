@@ -23,7 +23,7 @@ readFDT(DBID,FNR,printfdt=True) # Read and print FDT
 # close user session
 a.close()
 
-#  Copyright 2004-ThisYear Software AG
+#  Copyright 2004-2023 Software AG
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
